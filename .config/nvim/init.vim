@@ -25,6 +25,7 @@ Plug 'autozimu/LanguageClient-neovim', {
     \ 'do': 'bash install.sh',
     \ }
 Plug 'junegunn/fzf'
+Plug 'cakebaker/scss-syntax.vim'
 call plug#end()
 
 let g:run_rspec_bin = 'bundle exec rspec'
@@ -55,6 +56,13 @@ let g:ale_linters = {
 			\	"rubocop"
 			\]
 			\}
+
+let g:ale_fixers = {
+                     \ "ruby": ["rubocop"],
+                     \ "css": ["prettier"],
+                     \ "eruby": ["prettier"],
+                \ }
+let g:ale_fix_on_save = 1
 let g:ctrlp_map = '<a-f>'
 let g:ctrlp_cmd = 'CtrlP'
 autocmd FileType ruby setlocal omnifunc=LanguageClient#complete
@@ -75,3 +83,4 @@ map <a-c> :CtrlPClearCache<cr>
 :nnoremap <leader><leader> :NERDTree<CR>
 :nnoremap <leader>q :NERDTreeClose<CR>:CtrlPClearCache<CR>
 let g:ale_sign_column_always = 1
+set tabstop=2
