@@ -11,7 +11,6 @@ Plug 'jeetsukumaran/vim-buffergator'
 Plug 'tpope/vim-dispatch'
 Plug 'ngmy/vim-rubocop'
 Plug 'tpope/vim-surround'
-Plug 'Shougo/deoplete.nvim', { 'do': ':UpdateRemotePlugins' }
 Plug 'dense-analysis/ale'
 Plug 'altercation/vim-colors-solarized', { 'dir': '~/.config/nvim/colors/solarized' }
 Plug 'lifepillar/vim-solarized8', { 'dir': '~/.config/nvim/colors/solarized8' }
@@ -26,6 +25,11 @@ Plug 'autozimu/LanguageClient-neovim', {
     \ }
 Plug 'junegunn/fzf'
 Plug 'cakebaker/scss-syntax.vim'
+Plug 'mustache/vim-mustache-handlebars'
+Plug 'neoclide/coc.nvim', {'branch': 'release'}
+Plug 'kevinoid/vim-jsonc'
+Plug 'tpope/vim-rake'
+Plug 'pangloss/vim-javascript'
 call plug#end()
 
 let g:run_rspec_bin = 'bundle exec rspec'
@@ -36,19 +40,18 @@ let g:airline_theme='solarized'
 set number
 "set listchars=eol:$,nbsp:_,tab:>-,trail:~,extends:>,precedes:<,space:.
 "set list
-let g:deoplete#enable_at_startup = 1
+
+nmap <silent> gd <Plug>(coc-definition)
+nmap <silent> gy <Plug>(coc-type-definition)
+nmap <silent> gi <Plug>(coc-implementation)
+nmap <silent> gr <Plug>(coc-references)
+
 
 "set termguicolors
 let g:solarized_use16=1
 set background=dark
 syntax enable
 colorscheme solarized8
-
-let g:LanguageClient_serverCommands = {
-    \ 'ruby': ['~/.rbenv/shims/solargraph', 'stdio']
-    \ }
-
-let g:LanguageClient_autoStop = 0
 let g:rspec_command = "Dispatch rspec -c {spec}"
 
 let g:ale_linters = {
@@ -61,10 +64,13 @@ let g:ale_fixers = {
                      \ "ruby": ["rubocop"],
                      \ "css": ["prettier"],
                      \ "eruby": ["prettier"],
+                     \ "scss": ["prettier"],
+                     \ "javascript": ["prettier"]
                 \ }
 let g:ale_fix_on_save = 1
 let g:ctrlp_map = '<a-f>'
 let g:ctrlp_cmd = 'CtrlP'
+let g:ctrlp_show_hidden = 1
 autocmd FileType ruby setlocal omnifunc=LanguageClient#complete
 
 
