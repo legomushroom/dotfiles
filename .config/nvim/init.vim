@@ -63,7 +63,7 @@ let g:ale_linters = {
 let g:ale_fixers = {
                      \ "ruby": ["rubocop"],
                      \ "css": ["prettier"],
-                     \ "eruby": ["prettier"],
+                     \ "erb": ["prettier"],
                      \ "scss": ["prettier"],
                      \ "javascript": ["prettier"]
                 \ }
@@ -73,6 +73,7 @@ let g:ctrlp_cmd = 'CtrlP'
 let g:ctrlp_show_hidden = 1
 autocmd FileType ruby setlocal omnifunc=LanguageClient#complete
 
+let sw=2
 
 let g:ctrlp_custom_ignore = 'node_modules\|DS_Store\|git'
 " RSpec.vim mappings
