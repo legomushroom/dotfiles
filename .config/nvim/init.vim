@@ -38,6 +38,8 @@ let g:airline_theme='solarized'
 
 " important!!
 set number
+set smarttab
+set cindent
 "set listchars=eol:$,nbsp:_,tab:>-,trail:~,extends:>,precedes:<,space:.
 "set list
 
@@ -91,3 +93,6 @@ map <a-c> :CtrlPClearCache<cr>
 :nnoremap <leader>q :NERDTreeClose<CR>:CtrlPClearCache<CR>
 let g:ale_sign_column_always = 1
 set tabstop=2
+
+autocmd FileType javascript setlocal shiftwidth=2 tabstop=2
+
