@@ -18,18 +18,18 @@ Plug 'sonph/onehalf', { 'dir': '~/.config/nvim/colors/onehalf' }
 Plug 'vim-airline/vim-airline-themes'
 Plug 'preservim/nerdtree'
 Plug 'scrooloose/nerdtree'
-Plug 'kien/ctrlp.vim'
 Plug 'autozimu/LanguageClient-neovim', {
     \ 'branch': 'next',
     \ 'do': 'bash install.sh',
     \ }
-Plug 'junegunn/fzf'
+Plug 'junegunn/fzf', { 'do': { -> fzf#install() } }
 Plug 'cakebaker/scss-syntax.vim'
 Plug 'mustache/vim-mustache-handlebars'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
 Plug 'kevinoid/vim-jsonc'
 Plug 'tpope/vim-rake'
 Plug 'pangloss/vim-javascript'
+Plug 'mrk21/yaml-vim'
 call plug#end()
 
 let g:run_rspec_bin = 'bundle exec rspec'
@@ -70,14 +70,12 @@ let g:ale_fixers = {
                      \ "javascript": ["prettier"]
                 \ }
 let g:ale_fix_on_save = 1
-let g:ctrlp_map = '<a-f>'
-let g:ctrlp_cmd = 'CtrlP'
-let g:ctrlp_show_hidden = 1
+map <a-f> :FZF<CR>
+
 autocmd FileType ruby setlocal omnifunc=LanguageClient#complete
 
 let sw=2
 
-let g:ctrlp_custom_ignore = 'node_modules\|DS_Store\|git'
 " RSpec.vim mappings
 map <Leader>t :call RunCurrentSpecFile()<CR>
 map <Leader>s :call RunNearestSpec()<CR>
@@ -95,4 +93,4 @@ let g:ale_sign_column_always = 1
 set tabstop=2
 
 autocmd FileType javascript setlocal shiftwidth=2 tabstop=2
-
+autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab indentkeys-=0# indentkeys-=<:> foldmethod=indent nofoldenable

@@ -1,4 +1,3 @@
-export HOME=`pwd`
 # If you come from bash you might have to change your $PATH.
 export PATH=$HOME/bin:/usr/local/bin:$PATH
 
@@ -107,3 +106,5 @@ alias vim=nvim
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
+
+export FZF_DEFAULT_COMMAND='find -L . -type f \( -iname "*" ! -path "./node_modules/*" ! -path "./tmp/*" ! -path "./.git/*" ! -path "./.idea/*" ! -path "./public/assets/*" ! -path "./public/packs*" ! -iname ".*" \) -or -name ".gitignore" -or -name ".rubocop.yml"'
