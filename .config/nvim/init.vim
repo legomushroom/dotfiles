@@ -30,6 +30,9 @@ Plug 'kevinoid/vim-jsonc'
 Plug 'tpope/vim-rake'
 Plug 'pangloss/vim-javascript'
 Plug 'mrk21/yaml-vim'
+Plug 'noprompt/vim-yardoc'
+Plug 'benmills/vimux'
+Plug 'vim-test/vim-test'
 call plug#end()
 
 let g:run_rspec_bin = 'bundle exec rspec'
@@ -94,3 +97,17 @@ set tabstop=2
 
 autocmd FileType javascript setlocal shiftwidth=2 tabstop=2
 autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab indentkeys-=0# indentkeys-=<:> foldmethod=indent nofoldenable
+
+fun! SetupCommandAlias(from, to)
+  exec 'cnoreabbrev <expr> '.a:from
+        \ .' ((getcmdtype() is# ":" && getcmdline() is# "'.a:from.'")'
+        \ .'? ("'.a:to.'") : ("'.a:from.'"))'
+endfun
+call SetupCommandAlias("W","w")
+
+let test#strategy = "vimux"
+nmap <silent> t<C-n> :TestNearest<CR>
+nmap <silent> t<C-f> :TestFile<CR>
+nmap <silent> t<C-s> :TestSuite<CR>
+nmap <silent> t<C-l> :TestLast<CR>
+nmap <silent> t<C-g> :TestVisit<CR>
