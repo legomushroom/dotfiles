@@ -1,6 +1,5 @@
 call plug#begin()
 Plug 'tpope/vim-rails'
-Plug 'thoughtbot/vim-rspec'
 Plug 'tpope/vim-bundler'
 Plug 'tpope/vim-fugitive'
 Plug 'vim-ruby/vim-ruby'
@@ -33,9 +32,9 @@ Plug 'mrk21/yaml-vim'
 Plug 'noprompt/vim-yardoc'
 Plug 'benmills/vimux'
 Plug 'vim-test/vim-test'
+Plug 'svermeulen/vim-subversive'
 call plug#end()
 
-let g:run_rspec_bin = 'bundle exec rspec'
 
 let g:airline_theme='solarized'
 
@@ -51,13 +50,20 @@ nmap <silent> gy <Plug>(coc-type-definition)
 nmap <silent> gi <Plug>(coc-implementation)
 nmap <silent> gr <Plug>(coc-references)
 
+nmap s <plug>(SubversiveSubstitute)
+nmap ss <plug>(SubversiveSubstituteLine)
+nmap S <plug>(SubversiveSubstituteToEndOfLine)
+
+nmap <leader>r <plug>(SubversiveSubstituteRange)
+xmap <leader>r <plug>(SubversiveSubstituteRange)
+nmap <leader>rr <plug>(SubversiveSubstituteWordRange)
+
 
 "set termguicolors
 let g:solarized_use16=1
 set background=dark
 syntax enable
 colorscheme solarized8
-let g:rspec_command = "Dispatch rspec -c {spec}"
 
 let g:ale_linters = {
 			\ "ruby": [
@@ -108,6 +114,8 @@ call SetupCommandAlias("W","w")
 let test#strategy = "vimux"
 nmap <silent> t<C-n> :TestNearest<CR>
 nmap <silent> t<C-f> :TestFile<CR>
-nmap <silent> t<C-s> :TestSuite<CR>
+nmap <silent> t<C-a> :TestSuite<CR>
 nmap <silent> t<C-l> :TestLast<CR>
 nmap <silent> t<C-g> :TestVisit<CR>
+
+map <Leader>h :nohl<CR>
