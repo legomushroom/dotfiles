@@ -108,3 +108,7 @@ export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 export FZF_DEFAULT_COMMAND='find -L . -type f \( -iname "*" ! -path "./node_modules/*" ! -path "./tmp/*" ! -path "./.git/*" ! -path "./.idea/*" ! -path "./public/assets/*" ! -path "./public/packs*" ! -iname ".*" \) -or -name ".gitignore" -or -name ".rubocop.yml"'
+
+# tabtab source for electron-forge package
+# uninstall by removing these lines or running `tabtab uninstall electron-forge`
+[[ -f /home/fugufish/.config/yarn/global/node_modules/tabtab/.completions/electron-forge.zsh ]] && . /home/fugufish/.config/yarn/global/node_modules/tabtab/.completions/electron-forge.zsh

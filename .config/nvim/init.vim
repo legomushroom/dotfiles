@@ -33,9 +33,14 @@ Plug 'noprompt/vim-yardoc'
 Plug 'benmills/vimux'
 Plug 'vim-test/vim-test'
 Plug 'svermeulen/vim-subversive'
+Plug 'leafgarland/typescript-vim'
+Plug 'Shougo/vimproc.vim'
+Plug 'valloric/MatchTagAlways'
 call plug#end()
 
+set colorcolumn=80
 
+let g:coc_global_extensions = [ 'coc-tsserver' ]
 let g:airline_theme='solarized'
 
 " important!!
@@ -76,14 +81,18 @@ let g:ale_fixers = {
                      \ "css": ["prettier"],
                      \ "erb": ["prettier"],
                      \ "scss": ["prettier"],
-                     \ "javascript": ["prettier"]
+                     \ "javascript": ["prettier"],
+                     \ "typescript": ["prettier"],
+                     \ "handlebars": ["prettier"]
                 \ }
 let g:ale_fix_on_save = 1
 map <a-f> :FZF<CR>
 
 autocmd FileType ruby setlocal omnifunc=LanguageClient#complete
 
-let sw=2
+set sw=2
+set tabstop=2
+set expandtab
 
 " RSpec.vim mappings
 map <Leader>t :call RunCurrentSpecFile()<CR>
@@ -99,10 +108,13 @@ map <a-c> :CtrlPClearCache<cr>
 :nnoremap <leader><leader> :NERDTree<CR>
 :nnoremap <leader>q :NERDTreeClose<CR>:CtrlPClearCache<CR>
 let g:ale_sign_column_always = 1
-set tabstop=2
 
 autocmd FileType javascript setlocal shiftwidth=2 tabstop=2
 autocmd FileType yaml setlocal ts=2 sts=2 sw=2 expandtab indentkeys-=0# indentkeys-=<:> foldmethod=indent nofoldenable
+autocmd FileType html setlocal shiftwidth=2 tabstop=2
+autocmd FileType sass setlocal ts=2 sts=2 sw=2 expandtab indentkeys-=0# indentkeys-=<:> foldmethod=indent nofoldenable
+
+
 
 fun! SetupCommandAlias(from, to)
   exec 'cnoreabbrev <expr> '.a:from
@@ -119,3 +131,10 @@ nmap <silent> t<C-l> :TestLast<CR>
 nmap <silent> t<C-g> :TestVisit<CR>
 
 map <Leader>h :nohl<CR>
+
+let g:mta_filetypes = {
+    \ 'html' : 1,
+    \ 'xhtml' : 1,
+    \ 'xml' : 1,
+    \ 'html.handlebars' : 1,
+    \}
