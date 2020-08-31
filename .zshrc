@@ -99,15 +99,13 @@ source $ZSH/oh-my-zsh.sh
 # alias ohmyzsh="mate ~/.oh-my-zsh"
 export PATH="$HOME/.rbenv/bin:$PATH:/home/fugufish/.local/bin"
 eval "$(rbenv init -)"
-alias vi=nvim
-alias vim=nvim
 
 [ -f ~/.fzf.zsh ] && source ~/.fzf.zsh
 export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
-export FZF_DEFAULT_COMMAND='find -L . -type f \( -iname "*" ! -path "./node_modules/*" ! -path "./tmp/*" ! -path "./.git/*" ! -path "./.idea/*" ! -path "./public/assets/*" ! -path "./public/packs*" ! -iname ".*" \) -or -name ".gitignore" -or -name ".rubocop.yml"'
+export FZF_DEFAULT_COMMAND='find -L . -type f \( -iname "*" ! -path "./node_modules/*" ! -path "*node_modules/*" ! -path "./tmp/*" ! -path "./.git/*" ! -path "./.idea/*" ! -path "./public/assets/*" ! -path "./public/packs*" ! -iname ".*" ! -path "*dist/*" \) -or -name ".gitignore" -or -name ".rubocop.yml" -or -name ".yardopts"'
 
 # tabtab source for electron-forge package
 # uninstall by removing these lines or running `tabtab uninstall electron-forge`
