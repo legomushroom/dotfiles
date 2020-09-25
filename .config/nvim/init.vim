@@ -40,7 +40,7 @@ call plug#end()
 
 set colorcolumn=80
 
-let g:airline_theme='solarized'
+let g:airline_theme="deus"
 
 " important!!
 set number
@@ -64,7 +64,7 @@ nmap <leader>rr <plug>(SubversiveSubstituteWordRange)
 
 
 "set termguicolors
-let g:solarized_use16=1
+"let g:solarized_use16=1
 set background=dark
 syntax enable
 colorscheme solarized8
@@ -105,7 +105,7 @@ map <a-]> :tabn<CR>
 map <a-c> :CtrlPClearCache<cr>
 
 :nnoremap <leader><leader> :NERDTree<CR>
-:nnoremap <leader>q :NERDTreeClose<CR>:CtrlPClearCache<CR>
+:nnoremap <leader>q :NERDTreeClose<CR>
 let g:ale_sign_column_always = 1
 
 autocmd FileType javascript setlocal shiftwidth=2 tabstop=2
