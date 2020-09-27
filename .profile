@@ -25,4 +25,4 @@ fi
 if [ -d "$HOME/.local/bin" ] ; then
     PATH="$HOME/.local/bin:$PATH"
 fi
-_byobu_sourced=1 . /usr/bin/byobu-launch 2>/dev/null || true
+_byobu_sourced=1 . /home/linuxbrew/.linuxbrew/Cellar/byobu/5.133/bin/byobu-launch 2>/dev/null || true
