@@ -110,3 +110,5 @@ export FZF_DEFAULT_COMMAND='find -L . -type f \( -iname "*" ! -path "./node_modu
 # tabtab source for electron-forge package
 # uninstall by removing these lines or running `tabtab uninstall electron-forge`
 [[ -f /home/fugufish/.config/yarn/global/node_modules/tabtab/.completions/electron-forge.zsh ]] && . /home/fugufish/.config/yarn/global/node_modules/tabtab/.completions/electron-forge.zsh
+
+alias vim=nvim
