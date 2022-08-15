@@ -1,6 +1,8 @@
 export RUST_BACKTRACE=full
 
-alias gpu="git push origin -u \$(git symbolic-ref --short HEAD)"
+git config --global push.autoSetupRemote true
+git config --global push.default current
+
 alias flush-dns-mac="sudo dscacheutil -flushcache;sudo killall -HUP mDNSResponder"
 
 #
