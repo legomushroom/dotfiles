@@ -1,9 +1,11 @@
-export RUST_BACKTRACE=full
+export RUST_BACKTRACE=1
+. "$HOME/.cargo/env"
 
 git config --global push.autoSetupRemote true
 git config --global push.default current
 
 alias flush-dns-mac="sudo dscacheutil -flushcache;sudo killall -HUP mDNSResponder"
+alias install-rust="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
 
 #
 # Run a command N times.
