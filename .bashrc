@@ -1,3 +1,5 @@
+bash -c "$(wget https://raw.githubusercontent.com/ohmybash/oh-my-bash/master/tools/install.sh -O -)"
+
 export RUST_BACKTRACE=1
 
 git config --global user.name "Oleg Solomka"
