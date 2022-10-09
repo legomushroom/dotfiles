@@ -12,6 +12,7 @@ alias flush-dns-mac="sudo dscacheutil -flushcache;sudo killall -HUP mDNSResponde
 alias install-rust="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
 alias c="cargo"
 alias ku="kubectl"
+alias fresh="source ~/.bashrc"
 
 #
 # Run a command N times.
