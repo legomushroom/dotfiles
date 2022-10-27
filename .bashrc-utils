@@ -28,6 +28,14 @@ function cyan() {
   echo -e "${CYAN}$1${NO_COLOR}";
 }
 
+# Icons
+OK_ICON=✅
+ROADBLOCK_ICON=🚧
+RUNNING_ICON=🏃
+BLOWUP_ICON=💣
+FAIL_ICON=🛑
+FINISH_ICON=🏁
+
 # Git
 git config --global user.name "Oleg Solomka"
 git config --global user.email "legomushroom@gmail.com"
