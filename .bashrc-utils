@@ -25,7 +25,6 @@ alias irust="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -
 alias cb="cargo build"
 alias ce="cargo run --example"
 
-#
 # Run a command N times.
 #
 # ## Examples
@@ -42,13 +41,12 @@ function runx() {
   }
 }
 
-#
 # Same as `runx` but exits if command run yields unsuccessful exit code
 #
 # ## Examples
 # 
 # Runs `cargo t -- dns_map::tests::resolve::removes_expired_records_while_adds` command
-# 5 times and exits on first unsuccessful ruslt:
+# 5 times and exits on first unsuccessful result:
 # ```shell
 #   testx 5 cargo t -- dns_map::tests::resolve::removes_expired_records_while_adds
 # ```
@@ -69,4 +67,22 @@ function testx() {
   }
 
   echo -e "✅ all $1 done";
+}
+
+# Kill process by name.
+#
+# ## Examples
+# 
+# Kills `gh-net` process:
+# ```shell
+#   kproc gh-net
+# ```
+#
+function kproc() {
+  if [ -z $1 ]; then
+    echo -e "\n🚧 please provide process name, e.g. ${YELLOW}'kproc gh-net'${NO_COLOR}\n";
+    return 1;
+  fi
+
+  ps -ef | grep $1 | grep -v grep | awk '{print $2}' | sudo xargs -r kill -9;
 }
