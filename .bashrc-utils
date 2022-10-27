@@ -9,7 +9,7 @@ git config --global push.default current
 alias ku="kubectl"
 
 # Bash
-alias cfg="code ~/.bashrc"
+alias cfg="code ~/.bashrc-utils"
 alias fresh="source ~/.bashrc"
 
 # Rust
