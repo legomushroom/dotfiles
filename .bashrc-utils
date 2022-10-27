@@ -1,17 +1,21 @@
 export RUST_BACKTRACE=1
 
+# Git
 git config --global user.name "Oleg Solomka"
 git config --global user.email "legomushroom@gmail.com"
-
 git config --global push.autoSetupRemote true
 git config --global push.default current
 
-alias irust="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh"
-alias c="cargo"
-alias ce="cargo run --example"
 alias ku="kubectl"
+
+# Bash
 alias cfg="code ~/.bashrc"
 alias fresh="source ~/.bashrc"
+
+# Rust
+alias irust="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
+alias c="cargo"
+alias ce="cargo run --example"
 
 #
 # Run a command N times.
