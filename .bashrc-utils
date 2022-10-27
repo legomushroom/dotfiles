@@ -1,5 +1,16 @@
 export RUST_BACKTRACE=1
 
+# Add new lines before and after string
+#
+# ## Examples
+# 
+# ```shell
+#   margin "Hello World!"
+# ```
+function margin() {
+  echo -e "\n$1\n";
+}
+
 # Colours
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -34,7 +45,31 @@ ROADBLOCK_ICON=🚧
 RUNNING_ICON=🏃
 BLOWUP_ICON=💣
 FAIL_ICON=🛑
-FINISH_ICON=🏁
+START_ICON=🏁
+
+function roadblock() {
+  echo -e "$ROADBLOCK_ICON $1";
+}
+
+function fail() {
+  echo -e "$FAIL_ICON $1";
+}
+
+function blowup() {
+  echo -e "$BLOWUP_ICON $1";
+}
+
+function running() {
+  echo -e "$RUNNING_ICON $1";
+}
+
+function ok() {
+  echo -e "$OK_ICON $1";
+}
+
+function start() {
+  echo -e "$START_ICON $1";
+}
 
 # Git
 git config --global user.name "Oleg Solomka"
@@ -78,9 +113,8 @@ function runx() {
 # ```shell
 #   testx 5 cargo t -- dns_map::tests::resolve::removes_expired_records_while_adds
 # ```
-#
 function testx() {
-  echo -e "\n $FINISH_ICON $1 times\n";
+  echo -e "\n $START_ICON $1 times\n";
   for ((i = 1; i <= $1; i++)) {
     echo -e " $RUNNING_ICON $i \n";
     # execute command on current iteration
@@ -94,7 +128,7 @@ function testx() {
     fi
   }
 
-  echo -e "${OK_ICON} all $1 done";
+  ok "all $1 done";
 }
 
 # Kill process by name.
@@ -105,10 +139,10 @@ function testx() {
 # ```shell
 #   kproc gh-net
 # ```
-#
 function kproc() {
   if [ -z $1 ]; then
-    echo -e "\n$ROADBLOCK_ICON please provide process name, e.g. ${YELLOW}'kproc gh-net'${NO_COLOR}\n";
+    msg="$(roadblock "please provide process name, e.g. $(yellow 'kproc gh-net')")";
+    margin "$msg";
     return 1;
   fi
 
