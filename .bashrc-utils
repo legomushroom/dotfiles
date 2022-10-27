@@ -80,21 +80,21 @@ function runx() {
 # ```
 #
 function testx() {
-  echo -e "\n 🏁 $1 times\n";
+  echo -e "\n $FINISH_ICON $1 times\n";
   for ((i = 1; i <= $1; i++)) {
-    echo -e " 🏃 $i \n";
+    echo -e " $RUNNING_ICON $i \n";
     # execute command on current iteration
     ${*:2};
     TESTX_EXIT_CODE=$?;
     # if the current execution was unsuccessful,
     # exit with the same exit code
     if [[ $TESTX_EXIT_CODE != 0 ]]; then
-      echo -e "\n 💣 $i \n";
+      echo -e "\n $BLOWUP_ICON $i \n";
       return $TESTX_EXIT_CODE;
     fi
   }
 
-  echo -e "✅ all $1 done";
+  echo -e "${OK_ICON} all $1 done";
 }
 
 # Kill process by name.
@@ -108,7 +108,7 @@ function testx() {
 #
 function kproc() {
   if [ -z $1 ]; then
-    echo -e "\n🚧 please provide process name, e.g. ${YELLOW}'kproc gh-net'${NO_COLOR}\n";
+    echo -e "\n$ROADBLOCK_ICON please provide process name, e.g. ${YELLOW}'kproc gh-net'${NO_COLOR}\n";
     return 1;
   fi
 
