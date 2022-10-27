@@ -11,6 +11,14 @@ function margin() {
   echo -e "\n$1\n";
 }
 
+function margin_start() {
+  echo -e "\n$1";
+}
+
+function margin_end() {
+  echo -e "$1\n";
+}
+
 # Colours
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -114,21 +122,22 @@ function runx() {
 #   testx 5 cargo t -- dns_map::tests::resolve::removes_expired_records_while_adds
 # ```
 function testx() {
-  echo -e "\n $START_ICON $1 times\n";
+  margin_start "$(start "$(green $1) times")";
+
   for ((i = 1; i <= $1; i++)) {
-    echo -e " $RUNNING_ICON $i \n";
+    margin "$(running "run $(green $i)")";
     # execute command on current iteration
     ${*:2};
     TESTX_EXIT_CODE=$?;
     # if the current execution was unsuccessful,
     # exit with the same exit code
     if [[ $TESTX_EXIT_CODE != 0 ]]; then
-      echo -e "\n $BLOWUP_ICON $i \n";
+      margin "$(blowup $i)";
       return $TESTX_EXIT_CODE;
     fi
   }
 
-  ok "all $1 done";
+  margin "$(ok "all $(green $1) done")";
 }
 
 # Kill process by name.
