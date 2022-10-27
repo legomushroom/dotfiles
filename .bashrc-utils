@@ -24,7 +24,7 @@ function light-blue() {
   echo -e "${LIGHT_BLUE}$1${NO_COLOR}";
 }
 
-function CYAN() {
+function cyan() {
   echo -e "${CYAN}$1${NO_COLOR}";
 }
 
