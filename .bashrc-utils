@@ -6,6 +6,7 @@ git config --global user.email "legomushroom@gmail.com"
 git config --global push.autoSetupRemote true
 git config --global push.default current
 
+# Kube
 alias ku="kubectl"
 
 # Bash
@@ -17,5 +18,8 @@ alias fresh="source ~/.bashrc"
 alias irust="curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y"
 alias cb="cargo build"
 alias ce="cargo run --example"
+
+# Misc
+alias kmsg="echo -e '\n--------------------------------'"
 
 source ~/.bashrc-functions.sh
