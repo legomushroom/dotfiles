@@ -150,3 +150,14 @@ function kproc() {
 
   ps -ef | grep $1 | grep -v grep | awk '{print $2}' | sudo xargs -r kill -9;
 }
+
+function msg() {
+    local len="${1:-50}"
+    dmesg | tail --lines $len
+}
+
+function wmsg() {
+    local len="${1:-50}"
+
+    watch -n 1 "dmesg | tail --lines $len"
+}
