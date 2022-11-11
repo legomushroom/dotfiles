@@ -20,6 +20,7 @@ alias cb="cargo build"
 alias ce="cargo run --example"
 
 # Misc
-alias kmsg="echo -e '\n--------------------------------'"
+alias kmsg="echo -e '---' >> /dev/kmsg"
+alias csname="echo $CODESPACE_NAME"
 
 source ~/.bashrc-functions.sh
