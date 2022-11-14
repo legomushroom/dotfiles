@@ -5,4 +5,7 @@ if [ ! -d "$DOTFILES_DIR" ]; then
     git clone https://github.com/legomushroom/dotfiles.git $DOTFILES_DIR
 fi
 
-find $DOTFILES_DIR -iname ".bashrc*" -exec cp {} ~/ \;
+cd $DOTFILES_DIR
+git pull
+
+find ./ -iname ".bashrc*" -exec cp {} ~/ \;
