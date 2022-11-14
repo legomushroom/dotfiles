@@ -173,7 +173,7 @@ function igh() {
 }
 
 function imisc() {
-  margin begin "Installing $1.sh.."
+  margin "$(begin "Installing $1.sh..")"
 
   DOTFILES_DIR=/tmp/dotfiles
   if [ ! -d "$DOTFILES_DIR" ]; then
