@@ -171,3 +171,26 @@ function igh() {
     && sudo apt update \
     && sudo apt install gh -y
 }
+
+function imisc() {
+  margin begin "Installing $1.sh.."
+
+  DOTFILES_DIR=/tmp/dotfiles
+  if [ ! -d "$DOTFILES_DIR" ]; then
+    margin "$(progress "cloning dotfiles repo..")"
+
+    git clone https://github.com/legomushroom/dotfiles.git $DOTFILES_DIR
+  fi
+
+  cd $DOTFILES_DIR
+  margin "$(progress "updating dotfiles repo..")"
+
+  git pull
+
+  margin "$(progress "copying $1.sh to home..")"
+
+  cp ./misc/$1.sh ~/
+  echo "source ~/$1.sh" >> ~/.bashrc-utils
+
+  success
+}
