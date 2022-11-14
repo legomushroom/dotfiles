@@ -1,16 +1,19 @@
 #!/bin/bash
 
-# USBIP
+# USBIP utils
+
+# Install `gh-usb` extension from sources.
 function iusb() {
     set -e
 
-    margin begin "Installing gh-usb extension.."
+    margin "$(begin "Installing gh-usb extension..")"
 
     cargo make -p production gh-usb-install
 
     success
 }
 
+# List all exportable USB devices from remote server.
 function list() {
     set -e
 
@@ -19,18 +22,20 @@ function list() {
     sudo usbip list -r $SERVER_ADDRESS
 }
 
+# Attach to a remote USB device.
 function attach() {
     set -e
 
     local SERVER_ADDRESS="${2:-'0.0.0.0'}"
 
-    margin begin "Attaching to USBIP server \"$SERVER_ADDRESS\".."
+    margin "$(begin "Attaching to USBIP server \"$SERVER_ADDRESS\"..")"
 
     sudo usbip attach -r $SERVER_ADDRESS -b $1
 
     success
 }
 
+# List all currently attached USB devices.
 function port() {
     set -e
 
