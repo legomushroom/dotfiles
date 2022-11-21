@@ -45,7 +45,7 @@ function port() {
 }
 
 alias lusb="ps -ef | grep 'gh-usb' | grep -v grep"
-alias kusb="ps -ef | grep 'gh-usb' | grep -v grep | awk '{print $2}' | sudo xargs -r kill -9"
+alias kusb="sudo kill -9 $(ps -ef | grep 'gh-usb' | grep -v grep | awk '{print $2}')"
 
 alias upio="pio run -t upload"
 alias oocd="openocd -f interface/stlink-v2-1.cfg -f target/stm32f3x.cfg"
