@@ -173,6 +173,8 @@ function igh() {
 }
 
 function imisc() {
+  local PREV_LOCATION=$(pwd)
+
   margin "$(begin "Installing $1.sh..")"
 
   DOTFILES_DIR=/tmp/dotfiles
@@ -191,6 +193,8 @@ function imisc() {
 
   cp ./misc/$1.sh ~/
   echo "source ~/$1.sh" >> ~/.bashrc-utils
+  
+  cd $PREV_LOCATION
 
   success
 }
