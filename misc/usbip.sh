@@ -52,4 +52,4 @@ function kusb() {
 
 alias upio="pio run -t upload"
 alias oocd="openocd -f interface/stlink-v2-1.cfg -f target/stm32f3x.cfg"
-alias cfgu="code ~/usbip.sh"
+alias cfgusbip="code ~/usbip.sh"
