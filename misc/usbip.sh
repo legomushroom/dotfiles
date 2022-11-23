@@ -4,7 +4,7 @@
 
 # Install `gh-usb` extension from sources.
 function iusb() {
-    set -e
+    # set -e
 
     margin "$(begin "Installing gh-usb extension..")"
 
@@ -15,7 +15,7 @@ function iusb() {
 
 # List all exportable USB devices from remote server.
 function list() {
-    set -e
+    # set -e
 
     local SERVER_ADDRESS="${1:-'0.0.0.0'}"
 
@@ -24,7 +24,7 @@ function list() {
 
 # Attach to a remote USB device.
 function attach() {
-    set -e
+    # set -e
 
     local SERVER_ADDRESS="${2:-'0.0.0.0'}"
 
@@ -37,7 +37,7 @@ function attach() {
 
 # List all currently attached USB devices.
 function port() {
-    set -e
+    # set -e
 
     local SERVER_ADDRESS="${1:-'0.0.0.0'}"
 
@@ -45,7 +45,11 @@ function port() {
 }
 
 alias lusb="ps -ef | grep 'gh-usb' | grep -v grep"
-alias kusb="sudo kill -9 $(ps -ef | grep 'gh-usb' | grep -v grep | awk '{print $2}')"
+
+function kusb() {
+    sudo kill -9 $(ps -ef | grep 'gh-usb' | grep -v grep | awk '{print $2}')
+}
 
 alias upio="pio run -t upload"
 alias oocd="openocd -f interface/stlink-v2-1.cfg -f target/stm32f3x.cfg"
+alias cfgu="code ~/usbip.sh"
