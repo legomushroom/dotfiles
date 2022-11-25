@@ -47,8 +47,7 @@ function port() {
 alias lusb="ps -ef | grep 'gh-usb' | grep -v grep"
 
 function kusb() {
-    local PROCESS_NAME="${1:-'gh-usb'}"
-    local TARGET_PROCESSES="$(ps -ef | grep '$PROCESS_NAME' | grep -v grep | awk '{print $2}')"
+    local TARGET_PROCESSES="$(ps -ef | grep 'gh-usb' | grep -v grep | awk '{print $2}')"
 
     if [ ! -z $TARGET_PROCESSES ]; then
         sudo kill -9 $TARGET_PROCESSES
