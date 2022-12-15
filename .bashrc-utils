@@ -1,11 +1,11 @@
 export RUST_BACKTRACE=1
 
 # Git
-git config --global user.name "Oleg Solomka"
-git config --global user.email "legomushroom@gmail.com"
-git config --global push.autoSetupRemote true
-git config --global push.default current
-git config pull.rebase false
+git config --global user.name "Oleg Solomka" 2> /dev/null
+git config --global user.email "legomushroom@gmail.com" 2> /dev/null
+git config --global push.autoSetupRemote true 2> /dev/null
+git config --global push.default current 2> /dev/null
+git config pull.rebase false 2> /dev/null
 
 # Kube
 alias ku="kubectl"
