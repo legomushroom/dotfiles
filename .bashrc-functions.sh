@@ -85,6 +85,21 @@ function success() {
   margin "$(ok 'done')";
 }
 
+function failure() {
+  local MSG="${1:-failed}"
+  margin "$(fail "$MSG")" >&2
+
+  return 1
+}
+
+function end-script() {
+  if [ $? -eq 0 ]; then
+    return success
+  else
+    return failure
+  fi
+}
+
 function begin() {
   echo -e "$BEGIN_ICON $1";
 }
@@ -197,4 +212,9 @@ function imisc() {
   cd $PREV_LOCATION
 
   success
+}
+
+# Get current timestamp.
+function timestamp() {
+  echo "$(date +"%s")"
 }
