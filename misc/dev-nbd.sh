@@ -154,3 +154,17 @@ function iowlat() {
 
   dd if=/dev/zero of=$FILE_PATH bs=$FILE_SIZE count=$FILE_COUNT oflag=dsync
 }
+
+# measure IO read/write with `fio`
+alias iofio="fio --randrepeat=1 --ioengine=libaio --direct=1 --gtod_reduce=1 --name=test --filename=test --bs=4k --iodepth=64 --size=4G --readwrite=randrw --rwmixread=75"
+
+# measure disk IO with hdparm
+function iohd() {
+    if [ -z "$1" ]; then
+        return failure
+    fi
+
+    local DEVICE_NAME="$1"
+
+    sudo hdparm -Tt /dev/$DEVICE_NAME
+}
