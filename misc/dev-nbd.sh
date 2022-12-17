@@ -2,6 +2,8 @@
 
 # NBD utils
 
+alias cfgdevnbd="code ~/dev-nbd.sh"
+
 export TARGET_CONTAINER_ID="a815b34fc371"
 
 function docker_dir {
