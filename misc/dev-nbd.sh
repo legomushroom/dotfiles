@@ -136,8 +136,30 @@ function dbackup {
 
 alias dcopy="cp -r ./backup/* $DOCKER_MOUNT_POINT_PATH/"
 alias dls="ls -la $DOCKER_MOUNT_POINT_PATH/"
-alias dzero="dd if=/dev/zero of=$DOCKER_MOUNT_POINT_PATH/diff/root/1.log bs=4096 count=50"
-alias drand="dd if=/dev/random of=$DOCKER_MOUNT_POINT_PATH/diff/root/$(timestamp).log bs=4096 count=50"
+
+function drand() {
+    if [ -z "$1" ]; then
+      margin "$(roadblock "please provide file path")"
+
+      return 1
+  fi
+
+  local FILE_PATH="$1"
+
+  dd if=/dev/random of=$FILE_PATH bs=4096 count=50
+}
+
+function dzero() {
+    if [ -z "$1" ]; then
+      margin "$(roadblock "please provide file path")"
+
+      return 1
+  fi
+
+  local FILE_PATH="$1"
+
+  dd if=/dev/zero of=$FILE_PATH bs=4096 count=50
+}
 
 # measure IO write throughput
 function iowthru() {
