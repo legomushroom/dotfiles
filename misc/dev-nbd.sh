@@ -11,7 +11,7 @@ function docker_dir {
     echo "$ROOT_DIR"
 }
 
-function get_moint_id() {
+function get-mount-id() {
     if [ -z "$1" ]; then
         margin "$(roadblock "please provide container ID")"
 
@@ -41,7 +41,7 @@ function get_rw_layer_path() {
     fi
 
     local DOCKER_DIR="$(docker_dir)"
-    local MOUNT_ID="$(get_moint_id "$1")"
+    local MOUNT_ID="$(get-mount-id "$1")"
 
     local DEFAULT_STORAGE_DRIVER="$(docker info --format '{{.Driver}}')"
     local STORAGE_DRIVER="${2:-$DEFAULT_STORAGE_DRIVER}"
