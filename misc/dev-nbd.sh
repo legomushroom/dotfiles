@@ -165,7 +165,7 @@ function dzero() {
 function iowthru() {
   local FILE_PATH="${1:-"/tmp/test1.img"}"
   local FILE_SIZE="${2:-1G}"
-  local FILE_COUNT="${2:-1}"
+  local FILE_COUNT="${3:-1}"
 
   dd if=/dev/zero of=$FILE_PATH bs=$FILE_SIZE count=$FILE_COUNT oflag=dsync
 }
@@ -174,7 +174,7 @@ function iowthru() {
 function iowlat() {
   local FILE_PATH="${1:-"/tmp/test1.img"}"
   local FILE_SIZE="${2:-1M}"
-  local FILE_COUNT="${2:-1000}"
+  local FILE_COUNT="${23:-1000}"
 
   dd if=/dev/zero of=$FILE_PATH bs=$FILE_SIZE count=$FILE_COUNT oflag=dsync
 }
