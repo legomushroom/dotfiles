@@ -4,13 +4,6 @@
 
 alias cfgdevnbd="code ~/dev-nbd.sh"
 
-export TARGET_CONTAINER_ID="a815b34fc371"
-
-function docker_dir {
-    local ROOT_DIR=$(docker info 2>/dev/null | grep -i 'Docker Root Dir:' | sed -r 's/^.*:\s*//g')
-    echo "$ROOT_DIR"
-}
-
 function get-mount-id() {
     if [ -z "$1" ]; then
         margin "$(roadblock "please provide container ID")"
@@ -33,7 +26,7 @@ function get-mount-id() {
     echo $MOUNT_ID
 }
 
-function get_rw_layer_path() {
+function get-rw-layer-path() {
     if [ -z "$1" ]; then
         margin "$(roadblock "please provide container ID")"
 
@@ -78,64 +71,13 @@ function create-mount-file() {
     echo $MOUNT_FILE_PATH
 }
 
-function mount_file() {
-    if [ -z "$1" ]; then
-        margin "$(roadblock "please provide mount file path")"
-
-        return 1
-    fi
-    local MOUNT_FILE_PATH="$1"
-
-    if [ -z "$2" ]; then
-        margin "$(roadblock "please provide mount point path")"
-
-        return 1
-    fi
-    local MOUNT_POINT_PATH="$2"
-
-    sudo mount -o loop $MOUNT_FILE_PATH $MOUNT_POINT_PATH
-
-    return $?
-}
-
-function unmount_file() {
-  if [ -z "$1" ]; then
-      margin "$(roadblock "docker container ID")"
-
-      return 1
-  fi
-
-  local DOCKER_CONTAINER_ID="$1"
-  local MOUNT_POINT_PATH=$(get_rw_layer_path $DOCKER_CONTAINER_ID)
-
-  sudo umount $MOUNT_POINT_PATH
-
-  return $?
-}
-
 # Docker
 
 alias d="docker"
 alias dc="docker container"
 
-alias ds="docker start -i $TARGET_CONTAINER_ID"
 alias dstart="sudo systemctl start docker"
 alias dstop="sudo systemctl stop docker"
-
-export DOCKER_MOUNT_POINT_PATH="$(get_rw_layer_path "$TARGET_CONTAINER_ID")"
-
-function dbackup {
-  local DEST_PATH="/root/repos/nbd/backup"
-  local SRC_PATH="$DOCKER_MOUNT_POINT_PATH"
-
-  rm -rf $DEST_PATH
-  mkdir -p $DEST_PATH
-
-  cp -r $SRC_PATH/* $DEST_PATH/
-}
-
-alias dcopy="cp -r ./backup/* $DOCKER_MOUNT_POINT_PATH/"
-alias dls="ls -la $DOCKER_MOUNT_POINT_PATH/"
 
 function drand() {
     if [ -z "$1" ]; then
@@ -192,3 +134,5 @@ function iohd() {
 
     sudo hdparm -Tt /dev/$DEVICE_NAME
 }
+
+alias dlogs="journalctl -fu docker.service"
