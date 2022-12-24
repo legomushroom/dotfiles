@@ -4,6 +4,11 @@
 
 alias cfgdevnbd="code ~/dev-nbd.sh"
 
+function docker_dir {
+    local ROOT_DIR=$(docker info 2>/dev/null | grep -i 'Docker Root Dir:' | sed -r 's/^.*:\s*//g')
+    echo "$ROOT_DIR"
+}
+
 function get-mount-id() {
     if [ -z "$1" ]; then
         margin "$(roadblock "please provide container ID")"
