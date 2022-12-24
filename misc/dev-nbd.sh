@@ -136,3 +136,5 @@ function iohd() {
 }
 
 alias dlogs="journalctl -fu docker.service"
+
+# go env -w GO111MODULE=auto
