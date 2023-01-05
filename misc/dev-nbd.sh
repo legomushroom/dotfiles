@@ -142,4 +142,10 @@ function iohd() {
 
 alias dlogs="journalctl -fu docker.service"
 
+function fssize() {
+    ls -A -R -g -o "$@" | awk '{n1 += $3} END {print n1}'
+}
+
 # go env -w GO111MODULE=auto
+
+alias ddcfg="code /etc/docker/daemon.json"

@@ -218,3 +218,16 @@ function imisc() {
 function timestamp() {
   echo "$(date +"%s")"
 }
+
+# Watch a command every N seconds (N equal to 1 by default).
+function ww {
+  if [ -z $1 ]; then
+    msg="$(roadblock "please provide command to watch on, e.g. $(yellow 'ww "ls /etc"')")";
+    margin "$msg";
+    return 1;
+  fi
+
+  local INTERVAL="${2:-1}"
+
+  watch -n $INTERVAL "$1"
+}
