@@ -1,6 +1,24 @@
 #!/bin/bash
 
-# Add new lines before and after string
+# Sends a specified message or a spacer(`---`) to the `dmesg` log.
+# ## Examples
+#
+# ```shell
+#   kmesg
+# ```
+# Prints `---`(default spacer) to the `dmesg` log.
+# 
+# ```shell
+#   kmesg xxx
+# ```
+# Prints `xxx` to the `dmesg` log.
+function kmsg() {
+    local message="${1:----}"
+
+    echo -e "$message" | sudo tee -a /dev/kmsg > /dev/null
+}
+
+# Add new lines before and after string.
 #
 # ## Examples
 # 
