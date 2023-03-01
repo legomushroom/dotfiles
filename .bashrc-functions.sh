@@ -272,7 +272,7 @@ function assert-eq() {
     return 1;
   fi
 
-  if [ $1 -neq $2 ]; then
+  if [ "$1" != "$2" ]; then
     local ASSERT_MSG="${3:-assertion failed}"
     local NOT_EQUAL_MSG="$(yellow $1) != $(yellow $2)"
     local msg="$(roadblock "$ASSERT_MSG ($NOT_EQUAL_MSG)")";
