@@ -30,11 +30,11 @@ function margin() {
   echo -e "\n$1\n";
 }
 
-function margin_start() {
+function margin-top() {
   echo -e "\n$1";
 }
 
-function margin_end() {
+function margin-bottom() {
   echo -e "$1\n";
 }
 
@@ -148,7 +148,7 @@ function runx() {
 #   testx 5 cargo t -- dns_map::tests::resolve::removes_expired_records_while_adds
 # ```
 function testx() {
-  margin_start "$(start "$(green $1) times")";
+  margin-top "$(start "$(green $1) times")";
 
   for ((i = 1; i <= $1; i++)) {
     margin "$(progress "run $(green $i)")";
