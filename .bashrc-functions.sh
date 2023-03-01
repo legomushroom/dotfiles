@@ -249,3 +249,62 @@ function ww {
 
   watch -n $INTERVAL "$1"
 }
+
+# Asserts if a `left` value is equal to a `right` value.
+#
+# ## Examples
+#
+# ```shell
+# $ assert-eq 'foo' 'foo' // OK
+# $ assert-eq 'bar' 'foo' // Error
+# $ assert-eq 'bar' 'foo' 'must be equal' // Error with a custom message
+# ```
+function assert-eq() {
+  if [ -z $1 ]; then
+    local msg="$(roadblock "please provide a 'left' value to assert")";
+    margin "$msg";
+    return 1;
+  fi
+
+  if [ -z $2 ]; then
+    local msg="$(roadblock "please provide a 'right' value to assert")";
+    margin "$msg";
+    return 1;
+  fi
+
+  if [ $1 -neq $2 ]; then
+    local ASSERT_MSG="${3:-assertion failed}"
+    local NOT_EQUAL_MSG="$(yellow $1) != $(yellow $2)"
+    local msg="$(roadblock "$ASSERT_MSG ($NOT_EQUAL_MSG)")";
+
+    margin "$msg";
+    return 1;
+  fi
+}
+
+# Get current filesystem location. For instance, can be used in
+# a script to determine path where the script file resides.
+function current-folder() {
+    local FOLDER="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
+    echo $FOLDER
+}
+
+# Get a parent of a provided filesystem path.
+#
+# ## Examples
+#
+# ```shell
+# $ result=$(parent-of '/parent/child')
+# $ assert-eq $result '/parent'
+# ```
+function parent-of() {
+    if [ -z $1 ]; then
+        msg="$(roadblock "please provide a path";
+        margin "$msg";
+        return 1;
+    fi
+    
+    local PARENT_FOLDER="$(dirname $1)"
+    
+    echo $PARENT_FOLDER
+}
