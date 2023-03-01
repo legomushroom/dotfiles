@@ -299,7 +299,7 @@ function current-folder() {
 # ```
 function parent-of() {
     if [ -z $1 ]; then
-        msg="$(roadblock "please provide a path";
+        local msg="$(roadblock "please provide a path")";
         margin "$msg";
         return 1;
     fi
