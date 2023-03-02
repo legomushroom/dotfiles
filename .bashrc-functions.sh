@@ -282,13 +282,6 @@ function assert-eq() {
   fi
 }
 
-# Get current filesystem location. For instance, can be used in
-# a script to determine path where the script file resides.
-function current-folder() {
-    local FOLDER="$(cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd)"
-    echo $FOLDER
-}
-
 # Get a parent of a provided filesystem path.
 #
 # ## Examples
