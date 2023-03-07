@@ -313,7 +313,7 @@ function ensure-folder() {
   local FOLDER_LOCATION=$1
 
   if [ -z "$FOLDER_LOCATION" ]; then
-    local msg="$(roadblock "Please specify a folder location. Usage: $(yellow 'ensure-folder') $(red '<folder-path>')")"
+    local msg="$(roadblock "Please specify a folder location.\n\n   Usage: $(yellow 'ensure-folder') $(red '<folder-path>')")"
     margin "$msg"
 
     return 1
@@ -340,7 +340,7 @@ function ensure-clean-folder() {
   local FOLDER_LOCATION=$1
   
   if [ -z "$FOLDER_LOCATION" ]; then
-    local msg="$(roadblock "Please specify a folder location. Usage: $(yellow 'ensure-clean-folder') $(red '<folder-path>')")"
+    local msg="$(roadblock "Please specify a folder location.\n\n   Usage: $(yellow 'ensure-clean-folder') $(red '<folder-path>')")"
     margin "$msg"
 
     return 1
