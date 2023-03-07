@@ -301,3 +301,53 @@ function parent-of() {
     
     echo $PARENT_FOLDER
 }
+
+# Ensure folder exists.
+#
+# ## Examples
+#
+# ```shell
+# $ ensure-folder '/parent/child' # creates a folder if it doesn't exist
+# ```
+function ensure-folder() {
+  local FOLDER_LOCATION=$1
+
+  if [ -z "$FOLDER_LOCATION" ]; then
+    local msg="$(roadblock "Please specify a folder location. Usage: $(yellow 'ensure-folder') $(red '<folder-path>')")"
+    margin "$msg"
+
+    return 1
+  fi
+  
+  if [ -d "$FOLDER_LOCATION" ]; then
+    # the folder already exists, noop
+    return 0
+  fi
+
+  # otherwise create the folder
+  mkdir -p $FOLDER_LOCATION
+}
+
+# Ensure folder exists and is empty.
+#
+# ## Examples
+#
+# ```shell
+# $ ensure-clean-folder '/parent/child'
+# # -> creates a folder if it doesn't exist, otherwise removes it and creates a new one to ensure it's empty
+# ```
+function ensure-clean-folder() {
+  local FOLDER_LOCATION=$1
+  
+  if [ -z "$FOLDER_LOCATION" ]; then
+    local msg="$(roadblock "Please specify a folder location. Usage: $(yellow 'ensure-clean-folder') $(red '<folder-path>')")"
+    margin "$msg"
+
+    return 1
+  fi
+
+  # ensure the folder exists
+  ensure-folder $FOLDER_LOCATION
+  # ensure the folder is empty
+  rm -rf $FOLDER_LOCATION/*
+}
