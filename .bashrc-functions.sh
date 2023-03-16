@@ -181,10 +181,11 @@ function proc-pid() {
   if [ -z $1 ]; then
     msg="$(roadblock "please provide process name, e.g. $(yellow 'proc-pid gh-net')")";
     margin "$msg";
-    return 1;
+
+    return -1;
   fi
 
-  echo ps -ef | grep $1 | grep -v grep | awk '{print $2}'
+  echo "$(ps -ef | grep $1 | grep -v grep | awk '{print $2}')"
 }
 
 # Kill process by name.
