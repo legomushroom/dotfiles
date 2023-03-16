@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# TODO: fix locales
+# sudo dpkg-reconfigure locales
+
 # Sends a specified message or a spacer(`---`) to the `dmesg` log.
 # ## Examples
 #
@@ -164,6 +167,24 @@ function testx() {
   }
 
   margin "$(ok "all $(green $1) done")";
+}
+
+# Get process PID by process name.
+#
+# ## Examples
+# 
+# Gets `gh-net` process PID:
+# ```shell
+#   proc-pid gh-net
+# ```
+function proc-pid() {
+  if [ -z $1 ]; then
+    msg="$(roadblock "please provide process name, e.g. $(yellow 'proc-pid gh-net')")";
+    margin "$msg";
+    return 1;
+  fi
+
+  echo ps -ef | grep $1 | grep -v grep | awk '{print $2}'
 }
 
 # Kill process by name.
