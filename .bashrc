@@ -35,7 +35,8 @@ function install-ohmybash() {
 
     apt update && apt install -y curl
 
-    return install-with-curl
+    install-with-curl
+    return $?
 }
 
 set -e
