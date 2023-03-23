@@ -20,13 +20,15 @@ function install-ohmybash() {
     local CURL_LOCATION=$(command -v curl 2> /dev/null 2>&1 || echo "")
     if [ ! -z $CURL_LOCATION ]; then
 
-        return install-with-curl
+        install-with-curl
+        return $?
     fi
 
     local WGET_LOCATION=$(command -v wget 2> /dev/null 2>&1 || echo "")
     if [ ! -z $WGET_LOCATION ]; then
 
-        return install-with-wget
+        install-with-wget
+        return $?
     fi
 
     echo "No 'curl' or 'wget' found, installing 'curl'.."
