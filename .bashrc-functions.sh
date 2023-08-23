@@ -373,3 +373,8 @@ function ensure-clean-folder() {
   # ensure the folder is empty
   rm -rf $FOLDER_LOCATION/*
 }
+
+# Clean up all file cache.
+function clean-file-cache() {
+  echo 3 | sudo tee /proc/sys/vm/drop_caches;
+}
