@@ -10,7 +10,7 @@
 #   kmesg
 # ```
 # Prints `---`(default spacer) to the `dmesg` log.
-# 
+#
 # ```shell
 #   kmesg xxx
 # ```
@@ -24,7 +24,7 @@ function kmsg() {
 # Add new lines before and after string.
 #
 # ## Examples
-# 
+#
 # ```shell
 #   margin "Hello World!"
 # ```
@@ -128,40 +128,40 @@ function begin() {
 # Run a command N times.
 #
 # ## Examples
-# 
+#
 # Echoes "1" 5 times:
 # ```shell
 #   runx 5 echo "1"
 # ```
 #
 function runx() {
-  for ((i = 0; i < $1; i++)) {
+  for ((run_number = 0; run_number < $1; run_number++)) {
     # echo "\n-- runx: $i\n";
-    ${*:2}; 
+    eval "${*:2}";
   }
 }
 
 # Same as `runx` but exits if command run yields unsuccessful exit code
 #
 # ## Examples
-# 
+#
 # Runs `cargo t -- dns_map::tests::resolve::removes_expired_records_while_adds` command
 # 5 times and exits on first unsuccessful result:
 # ```shell
 #   testx 5 cargo t -- dns_map::tests::resolve::removes_expired_records_while_adds
 # ```
 function testx() {
-  margin-top "$(start "$(green $1) times")";
+  margin-top "$(begin "$(green $1) times")";
 
-  for ((i = 1; i <= $1; i++)) {
-    margin "$(progress "run $(green $i)")";
+  for ((run_number = 1; run_number <= $1; run_number++)) {
+    margin "$(progress "run $(green $run_number)")";
     # execute command on current iteration
-    ${*:2};
+    eval "${*:2}";
     TESTX_EXIT_CODE=$?;
     # if the current execution was unsuccessful,
     # exit with the same exit code
     if [[ $TESTX_EXIT_CODE != 0 ]]; then
-      margin "$(blowup $i)";
+      margin "$(blowup $run_number)";
       return $TESTX_EXIT_CODE;
     fi
   }
@@ -172,7 +172,7 @@ function testx() {
 # Get process PID by process name.
 #
 # ## Examples
-# 
+#
 # Gets `gh-net` process PID:
 # ```shell
 #   proc-pid gh-net
@@ -191,7 +191,7 @@ function proc-pid() {
 # Kill process by name.
 #
 # ## Examples
-# 
+#
 # Kills `gh-net` process:
 # ```shell
 #   kproc gh-net
@@ -248,7 +248,7 @@ function imisc() {
 
   cp ./misc/$1.sh ~/
   echo "source ~/$1.sh" >> ~/.bashrc-utils
-  
+
   cd $PREV_LOCATION
 
   success
@@ -318,9 +318,9 @@ function parent-of() {
         margin "$msg";
         return 1;
     fi
-    
+
     local PARENT_FOLDER="$(dirname $1)"
-    
+
     echo $PARENT_FOLDER
 }
 
@@ -340,7 +340,7 @@ function ensure-folder() {
 
     return 1
   fi
-  
+
   if [ -d "$FOLDER_LOCATION" ]; then
     # the folder already exists, noop
     return 0
@@ -360,7 +360,7 @@ function ensure-folder() {
 # ```
 function ensure-clean-folder() {
   local FOLDER_LOCATION=$1
-  
+
   if [ -z "$FOLDER_LOCATION" ]; then
     local msg="$(roadblock "Please specify a folder location.\n\n   Usage: $(yellow 'ensure-clean-folder') $(red '<folder-path>')")"
     margin "$msg"
