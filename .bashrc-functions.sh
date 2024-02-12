@@ -378,3 +378,42 @@ function ensure-clean-folder() {
 function clean-file-cache() {
   echo 3 | sudo tee /proc/sys/vm/drop_caches;
 }
+
+# Install provided apt packages if they are not already installed.
+#
+# ## Examples
+#
+# ```shell
+# $ install_apt_packages curl nano bash git
+# # -> installs the packages if not installed yet
+# ```
+function install_apt_packages() {
+    local PACKAGES=("$@")
+
+    local APT_UPDATE_DONE=0
+
+    # fail if no packages provided
+    if [[ -z $PACKAGES ]];
+    then
+        echo -e "\n🚨 No packages provided to install.\n"
+        return 1
+    fi
+
+    for PACKAGE in "${PACKAGES[@]}"
+    do
+        local INSTALLED="$(dpkg -l | grep $PACKAGE | wc -l)"
+        if [[ $INSTALLED == "0" ]];
+        then
+            # run apt update only once
+            if [[ APT_UPDATE_DONE -eq 0 ]];
+            then
+                sudo apt update
+                APT_UPDATE_DONE=1
+            fi
+
+            # install the package
+            echo -e "\n📦 Installing '$PACKAGE'..\n"
+            sudo apt install -y $PACKAGE
+        fi
+    done
+}
