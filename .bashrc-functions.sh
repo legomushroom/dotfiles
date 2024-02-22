@@ -401,11 +401,12 @@ function install_apt_packages() {
 
     for PACKAGE in "${PACKAGES[@]}"
     do
-        local INSTALLED="$(dpkg -l | grep $PACKAGE | wc -l)"
+        # `ii`  in the output of `dpkg -l` means fully installed
+        local INSTALLED="$(dpkg -l | grep "ii  $PACKAGE " | wc -l)"
         if [[ $INSTALLED == "0" ]];
         then
             # run apt update only once
-            if [[ APT_UPDATE_DONE -eq 0 ]];
+            if [[ $APT_UPDATE_DONE -eq 0 ]];
             then
                 sudo apt update
                 APT_UPDATE_DONE=1
