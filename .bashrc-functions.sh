@@ -418,3 +418,35 @@ function install_apt_packages() {
         fi
     done
 }
+
+# Interactively rebase the 'current branch' on top of the tip of the 'main'.
+#
+# ## Examples
+#
+# ```shell
+# $ rebase
+# # -> updates 'main' branch and starts interactive rebase on top of it
+# ```
+function rebase() {
+    # local old_opts=$(set +o | grep -E 'errexit')
+
+    #  # Funzione per ripristinare le opzioni
+    # restoreOpts() {
+    #     eval "$old_opts"
+    # }
+
+    # trap restoreOpts EXIT
+
+    # set -e
+
+    CURRENT_BRANCH="$(git branch --show-current)"
+    # echo "\n\n CURRENT_BRANCH: $CURRENT_BRANCH\n\n"
+
+    git checkout main \
+        && git pull \
+        && git checkout "$CURRENT_BRANCH" \
+        && git rebase -i main
+
+    # restoreOpts()
+    # trap - EXIT
+}
