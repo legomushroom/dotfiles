@@ -6,6 +6,7 @@ git config --global user.email "legomushroom@gmail.com" 2> /dev/null
 git config --global push.autoSetupRemote true 2> /dev/null
 git config --global push.default current 2> /dev/null
 git config pull.rebase false 2> /dev/null
+alias amend="git add . && git commit --amend --no-edit"
 
 # Kube
 alias ku="kubectl"
