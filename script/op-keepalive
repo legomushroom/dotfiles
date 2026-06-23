@@ -1,0 +1,156 @@
+#!/bin/bash
+#
+# op-keepalive: keep the 1Password CLI session alive in this Codespace so the
+# Copilot dev stack (copilot-api) always boots and runs with valid secrets.
+#
+# WHY THIS EXISTS
+# ---------------
+# copilot-api resolves its secrets ONCE at startup via `op run --env-file=.env`,
+# including the GitHub token it uses to fetch PR data. The 1Password CLI session
+# expires after ~30 min of inactivity and whenever the Codespace suspends/resumes.
+# When copilot-api (re)boots while the `op` session is expired it comes up with no
+# valid token, so PR fetches 401 and streamed reviews get garbled. This daemon
+# refreshes the `op` session on a cadence comfortably under the idle timeout, and
+# when it has to recover an expired session it restarts copilot-api so the new
+# process picks up freshly-resolved secrets.
+#
+# It is intended to be launched from the user dotfiles post-start hook
+# (script/codespaces-post-start), which runs on every container start/resume.
+# Launching it more than once is safe: a PID-file lock makes duplicate starts a
+# no-op.
+#
+# Usage:
+#   script/op-keepalive            # run the refresh loop in the foreground
+#   script/op-keepalive --once     # do a single ensure-signed-in pass and exit
+#   script/op-keepalive --status   # print whether the daemon is running, then exit
+#
+# Env knobs (all optional):
+#   OP_KEEPALIVE_INTERVAL   seconds between refreshes (default 1200 = 20 min)
+#   OP_KEEPALIVE_LOG        log file path (default /tmp/op-keepalive.log)
+#   OP_KEEPALIVE_NO_RESTART set to 1 to skip restarting copilot-api on recovery
+
+# NOTE: intentionally not using `set -u`. This runs from devcontainer/dotfiles
+# hooks whose shell startup (e.g. oh-my-bash) can leak unbound variables; `set -u`
+# would abort on those even though they are unrelated to this script. All of our
+# own variable reads use ${VAR:-} defaults, so -u would add no safety here.
+set -o pipefail
+
+INTERVAL="${OP_KEEPALIVE_INTERVAL:-1200}"
+LOG_FILE="${OP_KEEPALIVE_LOG:-/tmp/op-keepalive.log}"
+PID_FILE="/tmp/op-keepalive.pid"
+GITHUB_DIR="/workspaces/github"
+
+log() {
+	printf '%s op-keepalive: %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ')" "$*" >>"$LOG_FILE" 2>&1
+}
+
+# True (0) when there is a usable 1Password session right now.
+op_session_valid() {
+	op whoami >/dev/null 2>&1
+}
+
+# Ensure a 1Password account is configured and signed in. Returns 0 if a session
+# is valid afterward. Echoes "recovered" on stdout when it had to (re)establish a
+# session that was previously invalid, so the caller can react (e.g. restart
+# copilot-api). Secrets are piped via env vars and never appear on the command line.
+op_ensure_signed_in() {
+	if op_session_valid; then
+		return 0
+	fi
+
+	if [ -z "${ONEP_PASSWORD:-}" ]; then
+		log "ERROR: op session invalid and ONEP_PASSWORD is unset; cannot auto-sign-in. Run: eval \$(op signin)"
+		return 1
+	fi
+
+	# Make sure the github.1password.com account exists (first run after a fresh
+	# container may only have the CLI installed, not the account added).
+	if ! op account list 2>/dev/null | grep -q "github.1password.com"; then
+		if [ -n "${ONEP_SECRET_KEY:-}" ] && [ -n "${GITHUB_USER:-}" ]; then
+			log "adding github.1password.com account"
+			eval "$(printf '%s' "${ONEP_PASSWORD}" | op account add \
+				--address github.1password.com \
+				--email "${GITHUB_USER}@github.com" \
+				--secret-key "${ONEP_SECRET_KEY}" --signin 2>/dev/null)" || true
+		fi
+	else
+		eval "$(printf '%s' "${ONEP_PASSWORD}" | op signin 2>/dev/null)" || true
+	fi
+
+	if op_session_valid; then
+		echo "recovered"
+		return 0
+	fi
+
+	log "ERROR: failed to (re)establish 1Password session"
+	return 1
+}
+
+# Restart copilot-api so it re-resolves its `op run` secrets with the live session.
+# Best-effort: a missing Overmind or service is logged, not fatal.
+restart_copilot_api() {
+	if [ "${OP_KEEPALIVE_NO_RESTART:-0}" = "1" ]; then
+		log "recovery: OP_KEEPALIVE_NO_RESTART=1, skipping copilot-api restart"
+		return 0
+	fi
+	if ! command -v overmind >/dev/null 2>&1; then
+		log "recovery: overmind not found, cannot restart copilot-api"
+		return 0
+	fi
+	if [ ! -d "$GITHUB_DIR" ]; then
+		log "recovery: $GITHUB_DIR not present (not a dotcom codespace), skipping copilot-api restart"
+		return 0
+	fi
+	log "recovery: restarting copilot-api so it picks up refreshed secrets"
+	( cd "$GITHUB_DIR" && overmind restart copilot-api >/dev/null 2>&1 ) \
+		&& log "recovery: copilot-api restart signaled" \
+		|| log "recovery: copilot-api restart failed (Overmind not running?)"
+}
+
+# Single pass: ensure signed in, and if we had to recover, heal copilot-api.
+ensure_once() {
+	local result
+	result="$(op_ensure_signed_in)"
+	local rc=$?
+	if [ "$result" = "recovered" ]; then
+		log "1Password session re-established after a lapse"
+		restart_copilot_api
+	fi
+	return $rc
+}
+
+print_status() {
+	if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+		echo "op-keepalive running (PID $(cat "$PID_FILE")), interval ${INTERVAL}s, log ${LOG_FILE}"
+		if op_session_valid; then echo "1Password session: valid"; else echo "1Password session: INVALID"; fi
+	else
+		echo "op-keepalive not running"
+	fi
+}
+
+case "${1:-}" in
+	--status)
+		print_status
+		exit 0
+		;;
+	--once)
+		ensure_once
+		exit $?
+		;;
+esac
+
+# Daemon mode. Refuse to start a second copy.
+if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+	log "daemon already running (PID $(cat "$PID_FILE")); exiting"
+	exit 0
+fi
+echo "$$" >"$PID_FILE"
+trap 'rm -f "$PID_FILE"' EXIT
+
+log "daemon started (PID $$), interval ${INTERVAL}s"
+# Prime immediately so a stale session is fixed at boot, then loop.
+ensure_once
+while true; do
+	sleep "$INTERVAL"
+	ensure_once
+done

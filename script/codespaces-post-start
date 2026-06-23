@@ -1,0 +1,27 @@
+#!/bin/bash
+#
+# Codespaces post-start hook (user dotfiles).
+#
+# The github devcontainer's .devcontainer/post-start-command.sh runs this on every
+# container start/resume. We use it to launch the 1Password keepalive daemon from
+# copilot-chat, which keeps the `op` session alive so copilot-api always boots/runs
+# with valid secrets (otherwise PR fetches 401 and streamed reviews garble).
+#
+# Keep this hook fast and non-fatal: never `exit` non-zero or block startup.
+#
+# NOTE: intentionally not using `set -u` — shell startup (oh-my-bash) can leak
+# unbound variables that would otherwise abort the hook.
+
+# The keepalive daemon lives next to this hook in the dotfiles repo, so it travels
+# to every Codespace this repo is installed in.
+KEEPALIVE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/op-keepalive"
+
+if [ -x "$KEEPALIVE" ]; then
+	# Launch detached so it survives this hook returning; the script self-guards
+	# against duplicate instances via a PID file, so re-running is safe.
+	nohup "$KEEPALIVE" >/dev/null 2>&1 &
+	disown 2>/dev/null || true
+	echo "Launched op-keepalive daemon (1Password session keepalive)."
+fi
+
+exit 0
