@@ -9,3 +9,7 @@ cd $DOTFILES_DIR
 git pull
 
 find ./ -iname ".bashrc*" -exec cp {} ~/ \;
+
+# Install Copilot CLI custom instructions so they apply in every Codespace.
+mkdir -p ~/.copilot/instructions
+cp copilot/instructions/*.instructions.md ~/.copilot/instructions/
