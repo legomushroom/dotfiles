@@ -12,6 +12,17 @@
 # NOTE: intentionally not using `set -u` — shell startup (oh-my-bash) can leak
 # unbound variables that would otherwise abort the hook.
 
+# Resolve the dotfiles root (this hook lives in <root>/script/).
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")/.." && pwd)"
+
+# Re-sync Copilot CLI custom instructions on every container start so updates
+# from the dotfiles repo land without recreating the Codespace.
+if ls "$DOTFILES_DIR"/copilot/instructions/*.instructions.md >/dev/null 2>&1; then
+	mkdir -p ~/.copilot/instructions
+	cp "$DOTFILES_DIR"/copilot/instructions/*.instructions.md ~/.copilot/instructions/
+	echo "Synced Copilot CLI custom instructions."
+fi
+
 # The keepalive daemon lives next to this hook in the dotfiles repo, so it travels
 # to every Codespace this repo is installed in.
 KEEPALIVE="$(cd "$(dirname "${BASH_SOURCE[0]:-$0}")" && pwd)/op-keepalive"
