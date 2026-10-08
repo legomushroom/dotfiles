@@ -12,5 +12,5 @@ here and re-run `setup.sh`; the installer replaces each skill folder wholesale,
 so a file deleted here goes away on the next run.
 
 - `pr-review-babysitting` - drive bot review on a PR or stack to completion
-- `pr-approval-babysitting` - keep your approval on others' PRs alive through pushes until they merge
+- `pr-approval-babysitting` - keep your approval on others' PRs alive through pushes until they merge, and flag their merge conflicts
 - `pr-review-comment` - phrase a finding as a paste-able review comment

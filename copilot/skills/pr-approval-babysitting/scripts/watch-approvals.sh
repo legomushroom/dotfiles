@@ -2,6 +2,7 @@
 # Keep your PR approvals alive until the PR merges. When a push, rebase or base
 # change dismisses or outdates your approval, re-approve the new head on your
 # behalf, unless what changed since you approved needs your eyes (see guard).
+# Also alerts when a PR you approved gets merge conflicts, and when they clear.
 #
 # Usage: watch-approvals.sh [--mine] [<pr>...]
 #   <pr>    owner/repo#123 or https://github.com/owner/repo/pull/123
@@ -13,8 +14,13 @@
 #   DRY_RUN=1      decide and log, never approve (uses log.dry / status.dry)
 #   SENSITIVE      ERE; a change to a matching path always holds
 #   ALLOW_AUTHORS  comma-separated logins trusted to push to any PR
-#   NOTIFY=0       no desktop notification on HOLD (macOS / notify-send)
+#   NOTIFY=0       no notifications at all (dry runs never notify)
+#   SLACK_WEBHOOK_URL  Slack webhook taking {"text": ...}; else read from
+#                  ~/.config/pr-approval-babysitting/slack-webhook-url
 #   STATE_DIR      log and state  (default ~/.local/state/pr-approval-babysitting)
+#
+# Holds and conflict changes notify on the desktop (macOS / notify-send) and,
+# when a webhook is configured, in Slack.
 #
 # Explicit PRs are dropped once merged or closed, and with only explicit PRs
 # the script exits when all are done. With --mine it runs until HOURS or killed.
@@ -30,6 +36,8 @@ DRY_RUN=${DRY_RUN:-}
 SENSITIVE=${SENSITIVE:-'^\.github/(workflows|actions)/|(^|/)CODEOWNERS$|(^|/)\.gitmodules$'}
 ALLOW_AUTHORS=${ALLOW_AUTHORS:-}
 NOTIFY=${NOTIFY:-1}
+SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+SLACK_WEBHOOK_FILE=${XDG_CONFIG_HOME:-$HOME/.config}/pr-approval-babysitting/slack-webhook-url
 STATE_DIR=${STATE_DIR:-${XDG_STATE_HOME:-$HOME/.local/state}/pr-approval-babysitting}
 LOG_FILE=$STATE_DIR/log
 STATUS_FILE=$STATE_DIR/status
@@ -40,7 +48,7 @@ SLEEP_PID=
 
 PR_QUERY='query($o:String!,$r:String!,$n:Int!,$me:String!){
   repository(owner:$o,name:$r){pullRequest(number:$n){
-    state isDraft headRefOid baseRefOid reviewDecision
+    state isDraft headRefOid baseRefOid reviewDecision mergeable title
     author{login} assignees(first:20){nodes{login}}
     reviews(author:$me,last:100){nodes{databaseId state commit{oid}}}
     timelineItems(last:100,itemTypes:[REVIEW_DISMISSED_EVENT]){nodes{...on ReviewDismissedEvent{
@@ -57,7 +65,7 @@ PR_JQ='.data.repository.pullRequest as $p
   | ([$p.reviews.nodes[] | select(.state == "APPROVED" or .state == "CHANGES_REQUESTED" or .state == "DISMISSED")] | last) as $mine
   | ([$p.timelineItems.nodes[] | select($mine != null and .review.databaseId == $mine.databaseId)] | last) as $d
   | [ $p.state, ($p.isDraft | tostring), $p.headRefOid, $p.baseRefOid,
-      ($p.reviewDecision // "NONE"), ($p.author.login // "ghost"),
+      ($p.reviewDecision // "NONE"), ($p.mergeable // "UNKNOWN"), ($p.author.login // "ghost"),
       ([$p.assignees.nodes[].login] | join(",")),
       ($mine.state // "NONE"), ($mine.commit.oid // ""),
       (if $d == null then ""
@@ -66,6 +74,7 @@ PR_JQ='.data.repository.pullRequest as $p
              or $d.dismissalMessage == "The merge-base changed after approval.") then "base-change"
        else "manual" end),
       ($d.previousReviewState // ""), ($d.actor.login // ""),
+      (($p.title // "") | gsub("[\n\r\u001f]"; " ")),
       (($d.dismissalMessage // "") | gsub("[\n\r\u001f]"; " "))
     ] | join("\u001f")'
 
@@ -96,20 +105,59 @@ normalize_ref() {
   esac
 }
 
-notify() {
-  [ "$NOTIFY" = 1 ] || return 0
-  # The message carries PR-controlled text, so pass it as an argument rather
-  # than splicing it into the AppleScript source.
-  if command -v osascript >/dev/null 2>&1; then
-    osascript -e 'on run argv' -e 'display notification (item 1 of argv) with title "PR approval held"' -e 'end run' "$1" >/dev/null 2>&1
-  elif command -v notify-send >/dev/null 2>&1; then
-    notify-send "PR approval held" "$1" >/dev/null 2>&1
-  fi
+slack() { # text
+  local text out
+  [ -n "$SLACK_WEBHOOK_URL" ] || return 0
+  # Slack renders mrkdwn, so escape its three control characters or a PR title
+  # could pose as a link; then escape for the JSON string.
+  text=$(printf '%s' "$1" | tr '\001-\037' ' ' |
+    sed -e 's/&/\&amp;/g' -e 's/</\&lt;/g' -e 's/>/\&gt;/g' -e 's/\\/\\\\/g' -e 's/"/\\"/g')
+  # The webhook URL is a secret: hand it to curl through a config on stdin
+  # rather than argv, where anyone on the machine could read it from ps.
+  out=$(printf 'url = "%s"\n' "$SLACK_WEBHOOK_URL" |
+    curl -fsS -m 15 -K - -H 'Content-Type: application/json' --data-binary "{\"text\":\"$text\"}" 2>&1) ||
+    log "ERROR Slack notification failed: ${out:0:200}"
   return 0
+}
+
+notify() { # title body
+  [ "$NOTIFY" = 1 ] && [ -z "$DRY_RUN" ] || return 0
+  # The body carries PR-controlled text, so pass it as an argument rather than
+  # splicing it into the AppleScript source.
+  if command -v osascript >/dev/null 2>&1; then
+    osascript -e 'on run argv' -e 'display notification (item 2 of argv) with title (item 1 of argv)' -e 'end run' "$1" "$2" >/dev/null 2>&1
+  elif command -v notify-send >/dev/null 2>&1; then
+    notify-send "$1" "$2" >/dev/null 2>&1
+  fi
+  slack "$1: $2"
 }
 
 last_status() {
   awk -F'\t' -v r="$1" '$1 == r { s = $2 } END { print s }' "$STATUS_FILE" 2>/dev/null
+}
+
+set_status() { # key status
+  { awk -F'\t' -v r="$1" '$1 != r' "$STATUS_FILE" 2>/dev/null; printf '%s\t%s\n' "$1" "$2"; } >"$STATUS_FILE.$$"
+  mv "$STATUS_FILE.$$" "$STATUS_FILE"
+}
+
+# Conflicts are tracked apart from the approval status, since a PR can be both
+# approved and conflicting. GitHub computes mergeability lazily and answers
+# UNKNOWN until it has, which is no news either way.
+track_conflict() { # ref mergeable title
+  local key="$1!conflict" last
+  case $2 in CONFLICTING | MERGEABLE) ;; *) return 0 ;; esac
+  last=$(last_status "$key")
+  [ "$last" = "$2" ] && return 0
+  set_status "$key" "$2"
+  if [ "$2" = CONFLICTING ]; then
+    log "CONFLICT $(pr_url "$1") has merge conflicts: $3"
+    notify "Merge conflict" "$3 $(pr_url "$1")"
+  elif [ -n "$last" ]; then
+    log "RESOLVED $(pr_url "$1") merge conflicts are resolved: $3"
+    notify "Merge conflict resolved" "$3 $(pr_url "$1")"
+  fi
+  return 0
 }
 
 # Record a PR's status and log it only when it changes.
@@ -117,14 +165,13 @@ report() { # ref status message
   local ref=$1 status=$2 msg=$3 last
   last=$(last_status "$ref")
   [ "$last" = "$status" ] && return 0
-  { awk -F'\t' -v r="$ref" '$1 != r' "$STATUS_FILE" 2>/dev/null; printf '%s\t%s\n' "$ref" "$status"; } >"$STATUS_FILE.$$"
-  mv "$STATUS_FILE.$$" "$STATUS_FILE"
+  set_status "$ref" "$status"
   # Our own approval landing is not news; neither is a discovered PR you only
   # commented on.
   [ "$last" = "APPROVED:${status#VALID:}" ] && return 0
   [ -n "$QUIET_UNAPPROVED" ] && [ "$status" = WAIT:unapproved ] && return 0
   log "${status%%:*} $(pr_url "$ref") $msg"
-  case $status in HOLD*) notify "$ref: $msg" ;; esac
+  case $status in HOLD*) notify "PR approval held" "$ref: $msg" ;; esac
   return 0
 }
 
@@ -208,12 +255,12 @@ approve() { # repo pr head
 # Returns 10 once the PR is merged or closed, so the caller can drop it.
 evaluate() { # ref
   local ref=$1 repo=${1%#*} n=${1##*#} info
-  local state draft head base decision author assignees mine approved dkind dprev pusher dmsg
+  local state draft head base decision mergeable author assignees mine approved dkind dprev pusher title dmsg
   local why verdict result
 
   info=$(gh api graphql -f query="$PR_QUERY" -f o="${repo%/*}" -f r="${repo#*/}" -F n="$n" -f me="$ME" --jq "$PR_JQ" 2>&1) ||
     { report "$ref" ERROR "${info//$'\n'/ }"; return 0; }
-  IFS=$'\037' read -r state draft head base decision author assignees mine approved dkind dprev pusher dmsg <<<"$info"
+  IFS=$'\037' read -r state draft head base decision mergeable author assignees mine approved dkind dprev pusher title dmsg <<<"$info"
 
   case $state in
     MERGED) report "$ref" DONE "merged"; return 10 ;;
@@ -222,6 +269,11 @@ evaluate() { # ref
   if [ "$author" = "$ME" ]; then
     report "$ref" SKIP:own "your own PR"
     return 0
+  fi
+  # Conflicts only matter on PRs you approved, including ones whose approval
+  # was dismissed since, not ones you merely commented on or blocked.
+  if [ "$mine" = APPROVED ] || { [ "$mine" = DISMISSED ] && [ "$dprev" = APPROVED ]; }; then
+    track_conflict "$ref" "$mergeable" "$title"
   fi
 
   case $mine in
@@ -316,6 +368,9 @@ main() {
     : >"$STATUS_FILE"
   fi
   ME=$(gh api user --jq .login) || { echo "gh is not authenticated" >&2; return 1; }
+  if [ -z "$SLACK_WEBHOOK_URL" ] && [ -r "$SLACK_WEBHOOK_FILE" ]; then
+    SLACK_WEBHOOK_URL=$(head -1 "$SLACK_WEBHOOK_FILE" | tr -d '[:space:]')
+  fi
 
   # Two --mine watchers would race each other to approve the same head.
   if [ -n "$mine" ] && [ -z "$DRY_RUN" ]; then
@@ -337,7 +392,12 @@ main() {
   trap 'exit 143' TERM
 
   [ "$HOURS" -gt 0 ] && deadline=$(($(date +%s) + HOURS * 3600))
-  log "START as $ME${mine:+, every open PR you reviewed}${refs[0]+, ${refs[*]}}${DRY_RUN:+ (dry run)}; polling every ${INTERVAL}s"
+  local channels=none
+  if [ "$NOTIFY" = 1 ] && [ -z "$DRY_RUN" ]; then
+    channels=desktop
+    [ -n "$SLACK_WEBHOOK_URL" ] && channels="desktop+slack"
+  fi
+  log "START as $ME${mine:+, every open PR you reviewed}${refs[0]+, ${refs[*]}}${DRY_RUN:+ (dry run)}; polling every ${INTERVAL}s; notifying: $channels"
 
   while :; do
     keep=()
