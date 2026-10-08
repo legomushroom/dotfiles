@@ -46,7 +46,7 @@ GitHub has no notification for a PR getting merge conflicts (Slack scheduled rem
 
 Channels:
 
-- **Desktop**, always: macOS notification via `osascript`, or `notify-send` on Linux. Nothing in a codespace.
+- **Desktop**, always: on macOS through `terminal-notifier` when installed (`brew install terminal-notifier`), so clicking a hold opens exactly what changed since your approval and clicking a conflict alert opens the PR. A newer alert for the same PR replaces the older one, so `RESOLVED` clears its `CONFLICT`. Without terminal-notifier, or with its notifications turned off (logged as `ERROR`), it falls back to `osascript`, whose notifications belong to Script Editor, so a click opens that instead. `notify-send` on Linux. Nothing in a codespace. The first terminal-notifier run triggers macOS's permission prompt; clicking that prompt opens Settings, not a PR. To keep alerts up until dismissed, set terminal-notifier's alert style to Alerts (Persistent on newer macOS) in System Settings > Notifications.
 - **Slack**, once a webhook is set: anything that accepts `{"text": "..."}` works. For a DM to yourself, create a Slack Workflow Builder workflow that starts from a webhook with one text variable named `text` and sends you a message containing it; an incoming webhook into a private channel also works. The URL is a secret, so never put it in dotfiles:
   - Mac: `mkdir -p ~/.config/pr-approval-babysitting && (umask 077; pbpaste > ~/.config/pr-approval-babysitting/slack-webhook-url)` with the URL on the clipboard.
   - Codespaces: a Codespaces user secret named `SLACK_WEBHOOK_URL`, which arrives as an env var.

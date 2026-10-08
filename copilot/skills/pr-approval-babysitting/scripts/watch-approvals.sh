@@ -19,8 +19,9 @@
 #                  ~/.config/pr-approval-babysitting/slack-webhook-url
 #   STATE_DIR      log and state  (default ~/.local/state/pr-approval-babysitting)
 #
-# Holds and conflict changes notify on the desktop (macOS / notify-send) and,
-# when a webhook is configured, in Slack.
+# Holds and conflict changes notify on the desktop and, when a webhook is
+# configured, in Slack. On macOS, terminal-notifier (when installed) makes a
+# click open the PR; otherwise osascript, or notify-send on Linux.
 #
 # Explicit PRs are dropped once merged or closed, and with only explicit PRs
 # the script exits when all are done. With --mine it runs until HOURS or killed.
@@ -120,13 +121,23 @@ slack() { # text
   return 0
 }
 
-notify() { # title body
+notify() { # title body click-url group
+  local out desktop=
   [ "$NOTIFY" = 1 ] && [ -z "$DRY_RUN" ] || return 0
-  # The body carries PR-controlled text, so pass it as an argument rather than
-  # splicing it into the AppleScript source.
-  if command -v osascript >/dev/null 2>&1; then
+  # terminal-notifier opens the URL on click; osascript notifications belong to
+  # Script Editor, so clicking one opens that instead. The body carries
+  # PR-controlled text, so pass it as an argument rather than splicing it into
+  # the AppleScript source.
+  if command -v terminal-notifier >/dev/null 2>&1; then
+    if out=$(terminal-notifier -title "$1" -message "$2" -open "$3" -group "pr-approval-babysitting:$4" 2>&1); then
+      desktop=1
+    else
+      log "ERROR terminal-notifier failed, falling back: ${out:0:200}"
+    fi
+  fi
+  if [ -z "$desktop" ] && command -v osascript >/dev/null 2>&1; then
     osascript -e 'on run argv' -e 'display notification (item 2 of argv) with title (item 1 of argv)' -e 'end run' "$1" "$2" >/dev/null 2>&1
-  elif command -v notify-send >/dev/null 2>&1; then
+  elif [ -z "$desktop" ] && command -v notify-send >/dev/null 2>&1; then
     notify-send "$1" "$2" >/dev/null 2>&1
   fi
   slack "$1: $2"
@@ -152,17 +163,17 @@ track_conflict() { # ref mergeable title
   set_status "$key" "$2"
   if [ "$2" = CONFLICTING ]; then
     log "CONFLICT $(pr_url "$1") has merge conflicts: $3"
-    notify "Merge conflict" "$3 $(pr_url "$1")"
+    notify "Merge conflict" "$3 $(pr_url "$1")" "$(pr_url "$1")" "conflict:$1"
   elif [ -n "$last" ]; then
     log "RESOLVED $(pr_url "$1") merge conflicts are resolved: $3"
-    notify "Merge conflict resolved" "$3 $(pr_url "$1")"
+    notify "Merge conflict resolved" "$3 $(pr_url "$1")" "$(pr_url "$1")" "conflict:$1"
   fi
   return 0
 }
 
 # Record a PR's status and log it only when it changes.
 report() { # ref status message
-  local ref=$1 status=$2 msg=$3 last
+  local ref=$1 status=$2 msg=$3 last url
   last=$(last_status "$ref")
   [ "$last" = "$status" ] && return 0
   set_status "$ref" "$status"
@@ -171,7 +182,14 @@ report() { # ref status message
   [ "$last" = "APPROVED:${status#VALID:}" ] && return 0
   [ -n "$QUIET_UNAPPROVED" ] && [ "$status" = WAIT:unapproved ] && return 0
   log "${status%%:*} $(pr_url "$ref") $msg"
-  case $status in HOLD*) notify "PR approval held" "$ref: $msg" ;; esac
+  case $status in
+    HOLD*)
+      # A hold ends with the link to exactly what changed since the approval,
+      # which is what a click should open; the PR itself otherwise.
+      url=${msg##* review }
+      case $url in "$(pr_url "$ref")/files/"*) ;; *) url=$(pr_url "$ref") ;; esac
+      notify "PR approval held" "$ref: $msg" "$url" "hold:$ref" ;;
+  esac
   return 0
 }
 
