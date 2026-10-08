@@ -1,7 +1,7 @@
 ---
 name: pr-review-babysitting
-description: 'Drive automated PR review to completion: wait for a reviewer bot, read findings from every place they hide, verify each claim before fixing, fix, reply, resolve, re-request, repeat until clean. Then, in local-review mode (on by default), have a local Claude subagent review the whole PR, fix what it finds that is in scope and blocking or should-fix, push, and go back through Copilot, until neither has anything worth fixing. Keeps fixes scoped to the PR''s goal. Also watches CI and merge conflicts each cycle. USE FOR: babysitting Copilot/bot review on one PR or a whole PR stack; "address the review feedback in a loop"; "wait for review and fix what comes back"; long unattended review-remediation cycles; "Copilot only" or "no local review" to turn the local pass off. DO NOT USE FOR: a single already-known review comment (just fix it); human code review conversations needing judgement calls; writing the PR itself.'
-argument-hint: '<owner/repo> <pr> [pr...] [--no-local-review]; PRs in base-to-head order for a stack'
+description: 'Drive automated PR review to completion: wait for a reviewer bot, read findings from every place they hide, verify each claim before fixing, fix, reply, resolve, re-request, repeat until clean. Then, in local-review mode (on by default), have a local Claude subagent review the whole PR, fix what it finds that is in scope and blocking or should-fix, push, and go back through Copilot, until neither has anything worth fixing. Keeps fixes scoped to the PR''s goal. Also watches CI and merge conflicts each cycle, and notifies (desktop, optional Slack) when a PR''s loop stops. USE FOR: babysitting Copilot/bot review on one PR or a whole PR stack; "address the review feedback in a loop"; "wait for review and fix what comes back"; long unattended review-remediation cycles; "Copilot only" or "no local review" to turn the local pass off. DO NOT USE FOR: a single already-known review comment (just fix it); human code review conversations needing judgement calls; writing the PR itself.'
+argument-hint: '<owner/repo> <pr> [pr...] [--no-local-review] [--max-local-rounds N]; PRs in base-to-head order for a stack'
 ---
 
 # PR review babysitting
@@ -16,7 +16,7 @@ each one silently produced a wrong "nothing to do" in practice.
 
 ## Modes
 
-Local review is **on** unless the user turns it off: `--no-local-review` in the arguments, or asking for "Copilot only", "no local review" or "skip the local review". `--local-review` turns it back on. Say which mode is active when you start. With it off, everything about local rounds below is skipped.
+Local review is **on** unless the user turns it off: `--no-local-review` in the arguments, or asking for "Copilot only", "no local review" or "skip the local review". `--local-review` turns it back on. `--max-local-rounds N` changes the round cap (default 10, see stop condition). Say which mode and cap are active when you start. With it off, everything about local rounds below is skipped.
 
 ## Stay on the PR's goal
 
@@ -28,7 +28,7 @@ A finding is **in scope** when it is about the changed lines or a direct consequ
 
 - In scope and verified: fix it.
 - Out of scope: do not fix it. On a Copilot thread, reply that it is pre-existing or outside this PR and resolve. Either way, keep it as a follow-up for the final report.
-- Before every push, fetch the base and read `git diff --stat origin/<base>...HEAD`. Three dots, so what a rebase or a merge brought in from the base does not count as drift; in a stack, push the lower PR first. Each file outside the original list needs a reason, namely that it consumes what changed. If review fixes start to rival the original change in size, or add behaviour the description does not mention, stop and ask the user instead of pushing.
+- Before every push, fetch the base and read `git diff --stat origin/<base>...HEAD`. Three dots, so what a rebase or a merge brought in from the base does not count as drift; in a stack, push the lower PR first. Each file outside the original list needs a reason, namely that it consumes what changed. If review fixes start to rival the original change in size, or add behaviour the description does not mention, stop that PR's loop and ask the user instead of pushing.
 
 ## Findings ledger
 
@@ -87,9 +87,27 @@ re-requesting once clean rather than burning cycles.
 
 - **Local review off**: stop when Copilot-clean.
 - **Local review on**: stop when Copilot-clean and the latest local round produced nothing fresh that is in scope, verified, and blocking or should-fix. Nits never keep the loop going. The rest is a judgement call: a round of only re-raises, fixes that undo earlier fixes, or should-fix items you would not hold a merge for all mean stop.
-- **Soft cap**: after four local rounds, stop and hand back to the user with the trend rather than start a fifth. Should-fix findings that late usually mean the loop is churning on its own fixes or the PR is doing too much.
+- **Round cap**: 10 local rounds by default, or `--max-local-rounds N`. It is a backstop for runs left going overnight, not a target: the rule above still ends most runs well before it. On reaching it, stop and hand back with the trend. Should-fix findings that late usually mean the loop is churning on its own fixes or the PR is doing too much.
 
 Then tell the user, per PR: what each reviewer found and what was fixed, what was declined and why, out-of-scope follow-ups worth their own PR, how many nits were skipped, and why it stopped. Do not post change-summary comments on the PR itself.
+
+## Notify when a PR's loop stops
+
+Every time a PR's loop stops, for any reason, send one notification for it with [notify.sh](./scripts/notify.sh) before reporting. Runs are often left unattended, so this is how the user finds out:
+
+```bash
+~/.copilot/skills/pr-review-babysitting/scripts/notify.sh "$REPO" "$PR" done "clean after 3 local rounds; 4 fixed, 1 deferred"
+```
+
+| Outcome | When |
+|---|---|
+| `done` | the stop condition was met |
+| `stopped` | the round cap was reached, or the PR merged or closed mid-run |
+| `needs-you` | it is waiting on a human: the drift check, a conflict or CI failure you cannot settle, `REVIEW_REQUEST_UNKNOWN` that persists, a tool or auth failure |
+
+Keep the summary to one line. In a stack, each PR gets its own notification when its loop stops.
+
+It sends a desktop notification that opens the PR when clicked, through `terminal-notifier` (`brew install terminal-notifier`). Without it, it falls back to plain `osascript`, whose notifications belong to Script Editor, so clicking one opens that instead of the PR. On Linux it uses `notify-send`, and in a codespace there is no desktop notification. It also posts to Slack when a webhook is configured. That webhook is the one the pr-approval-babysitting skill uses, or `SLACK_WEBHOOK_URL`, or `~/.config/pr-review-babysitting/slack-webhook-url`. `NOTIFY=0` silences it. It never fails the caller and prints what it sent through, e.g. `NOTIFIED via desktop`. If nothing appears on macOS, allow terminal-notifier (or Script Editor, for the fallback) in System Settings > Notifications. The first run triggers macOS's own permission prompt; clicking that prompt opens Settings, not the PR. For a run left overnight, set terminal-notifier's alert style there to Alerts (Persistent on newer macOS) so the notification stays until dismissed; macOS has no per-notification setting for that.
 
 ## Pitfalls
 
@@ -229,3 +247,4 @@ While Copilot is reviewing, REST `pulls/N/requested_reviewers` and `gh pr view -
 - [reply-and-resolve.sh](./scripts/reply-and-resolve.sh) — post a reply from a
   file to a review thread and resolve it.
 - [local-review-prompt.md](./local-review-prompt.md): the prompt for the local review subagent.
+- [notify.sh](./scripts/notify.sh): desktop and optional Slack notification when a PR's loop stops.
