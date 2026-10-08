@@ -46,7 +46,11 @@ Keep one row per finding, from either reviewer, in the session SQL database or a
 5. **Fix at the right PR in the stack** (pitfall 6), run the full test suite and the linter, compare against a known warning baseline. Log every finding in the ledger.
 6. **Reply and resolve** each thread with
    [reply-and-resolve.sh](./scripts/reply-and-resolve.sh) (pitfall 7).
-7. **Push, then re-request only if nothing is in flight** (pitfall 10). Run the drift check and snapshot baselines before the push. Copilot usually starts a review by itself within a couple of minutes of a push, so run the watcher with `MINUTES=3` first, and request (command below) only if it reports `REVIEW_NOT_PENDING`, the review is still stale and no thread is unresolved. Go to 2.
+7. **Push, then wait for Copilot without double-requesting** (pitfall 10). Run the drift check before the push. Copilot usually starts a review by itself within a couple of minutes of a push, so run the watcher with `MINUTES=3` and branch on its report:
+   - `NEW_ACTIVITY`: the review already landed. Go to 3 with this report; going to 2 would set a baseline that already includes it and wait out the full timeout.
+   - `REVIEW_PENDING`: go to 2.
+   - `REVIEW_NOT_PENDING`, review still stale, no thread unresolved: request it (command below), go to 2.
+   - `REVIEW_REQUEST_UNKNOWN`: check by hand before doing either.
 8. **Copilot clean** (see stop condition): with local review on, run a [local round](#local-review-round); otherwise stop.
 
 ```bash
@@ -58,7 +62,7 @@ gh api -X POST "repos/$REPO/pulls/$PR/requested_reviewers" \
 
 Start one only when Copilot is clean on the current head: its latest review covers head, the body has no findings, no thread is unresolved, `REVIEW_NOT_PENDING`, and CI has no real failures. Copilot findings always go first.
 
-1. **Sync the checkout to the PR head**: clean worktree, `git rev-parse HEAD` equal to the PR's `headRefOid`. The reviewer reads local files, so a stale checkout reviews the wrong code.
+1. **Point the reviewer at the PR head**: clean worktree, `git rev-parse HEAD` equal to the PR's `headRefOid`. The reviewer reads local files, so a stale checkout reviews the wrong code. For a stack, one tree cannot sit at every head, so give each PR its own `git worktree add --detach <tmp> <headRefOid>`, pass that path as the repo path, and `git worktree remove` it after the round.
 2. **Fill the prompt** from [local-review-prompt.md](./local-review-prompt.md): the goal, repo path, `BASE_SHA` (`git merge-base origin/<base> HEAD`), `HEAD_SHA`, the head the previous local round saw, and the ledger's settled rows.
 3. **Spawn the reviewer** with the task tool:
    - `agent_type: "code-review"`. If it is unavailable, use `general-purpose`. Either way the prompt's read-only line stays, since the agent may still have edit tools.
