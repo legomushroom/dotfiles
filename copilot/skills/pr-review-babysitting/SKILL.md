@@ -46,7 +46,7 @@ Keep one row per finding, from either reviewer, in the session SQL database or a
 5. **Fix at the right PR in the stack** (pitfall 6), run the full test suite and the linter, compare against a known warning baseline. Log every finding in the ledger.
 6. **Reply and resolve** each thread with
    [reply-and-resolve.sh](./scripts/reply-and-resolve.sh) (pitfall 7).
-7. **Push, then wait for Copilot without double-requesting** (pitfall 10). If every finding was declined, there is nothing to push and nothing new for Copilot to review at this head; go to 8. Otherwise run the drift check before the push. Copilot usually starts a review by itself within a couple of minutes of a push, so run the watcher with `MINUTES=3` and branch on its report:
+7. **Push, then wait for Copilot without double-requesting** (pitfall 10). If every finding was declined or deferred, there is nothing to push and nothing new for Copilot to review at this head; go to 8. Otherwise run the drift check before the push. Copilot usually starts a review by itself within a couple of minutes of a push, so run the watcher with `MINUTES=3` and branch on its report:
    - `NEW_ACTIVITY`: the review already landed. Go to 3 with this report; going to 2 would set a baseline that already includes it and wait out the full timeout.
    - `REVIEW_PENDING`: go to 2.
    - `REVIEW_NOT_PENDING`, review still stale, no thread unresolved: request it (command below), go to 2.
@@ -81,7 +81,7 @@ Start one only when Copilot is clean on the current head (see stop condition), `
 
 ## Stop condition
 
-A PR is Copilot-clean when its latest review covers the current head, has zero unresolved threads, and every finding in its body is already settled in the ledger: none at all, or all declined with a reply. For the tip of a stack, prefer two
+A PR is Copilot-clean when its latest review covers the current head, has zero unresolved threads, and every finding in its body is already settled in the ledger: none at all, or all declined or deferred, with a reply where a thread exists. For the tip of a stack, prefer two
 consecutive clean rounds, since a fix on a lower PR can reopen the tip. Stop
 re-requesting once clean rather than burning cycles.
 
