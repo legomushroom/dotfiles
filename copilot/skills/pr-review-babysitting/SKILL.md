@@ -1,17 +1,38 @@
 ---
 name: pr-review-babysitting
-description: 'Drive automated PR review to completion: wait for a reviewer bot, read findings from every place they hide, verify each claim before fixing, fix, reply, resolve, re-request, repeat until clean. Also watches CI and merge conflicts each cycle. USE FOR: babysitting Copilot/bot review on one PR or a whole PR stack; "address the review feedback in a loop"; "wait for review and fix what comes back"; long unattended review-remediation cycles. DO NOT USE FOR: a single already-known review comment (just fix it); human code review conversations needing judgement calls; writing the PR itself.'
-argument-hint: '<owner/repo> <pr> [pr...] — base-to-head order for a stack'
+description: 'Drive automated PR review to completion: wait for a reviewer bot, read findings from every place they hide, verify each claim before fixing, fix, reply, resolve, re-request, repeat until clean. Then, in local-review mode (on by default), have a local Claude subagent review the whole PR, fix what it finds that is in scope and blocking or should-fix, push, and go back through Copilot, until neither has anything worth fixing. Keeps fixes scoped to the PR''s goal. Also watches CI and merge conflicts each cycle. USE FOR: babysitting Copilot/bot review on one PR or a whole PR stack; "address the review feedback in a loop"; "wait for review and fix what comes back"; long unattended review-remediation cycles; "Copilot only" or "no local review" to turn the local pass off. DO NOT USE FOR: a single already-known review comment (just fix it); human code review conversations needing judgement calls; writing the PR itself.'
+argument-hint: '<owner/repo> <pr> [pr...] [--no-local-review]; PRs in base-to-head order for a stack'
 ---
 
 # PR review babysitting
 
-Run automated review to completion without a human in the loop. One cycle is:
-wait for a review → read findings → verify each claim → fix → reply → resolve →
-re-request → wait again. Stop when a PR reports no findings and no open threads.
+Run automated review to completion without a human in the loop. Two reviewers, in strict priority order:
+
+1. **Copilot**, always. One cycle is: wait for a review → read findings → verify each claim → fix → reply → resolve → re-request → wait again. Its findings always come first.
+2. **Local review**, on by default. Once Copilot is clean on the current head, a local Claude subagent reviews the whole PR. What it finds that is worth fixing gets fixed and pushed, which sends the PR back through Copilot. Repeat until a local round finds nothing blocking or should-fix.
 
 The work is mostly discipline. The failure modes below are not hypothetical;
 each one silently produced a wrong "nothing to do" in practice.
+
+## Modes
+
+Local review is **on** unless the user turns it off: `--no-local-review` in the arguments, or asking for "Copilot only", "no local review" or "skip the local review". `--local-review` turns it back on. Say which mode is active when you start. With it off, everything about local rounds below is skipped.
+
+## Stay on the PR's goal
+
+Applies to every finding, from either reviewer. A PR that grows a second purpose during review is harder to review, riskier to merge, and no longer what was asked for.
+
+Before the first cycle, record the PR's goal (title, description, linked issue), its head SHA as `START_HEAD`, and its file list (`gh pr diff N -R REPO --name-only`).
+
+A finding is **in scope** when it is about the changed lines or a direct consequence of them: callers, tests, docs and scripts the change affects. Pre-existing problems in code the PR does not touch are out of scope unless the PR makes them reachable or worse. So are new features, refactors and "while you're here" cleanups, however good.
+
+- In scope and verified: fix it.
+- Out of scope: do not fix it. On a Copilot thread, reply that it is pre-existing or outside this PR and resolve. Either way, keep it as a follow-up for the final report.
+- Before every push, read `git diff --stat $START_HEAD..HEAD`. Each file outside the original list needs a reason, namely that it consumes what changed. If review fixes start to rival the original change in size, or add behaviour the description does not mention, stop and ask the user instead of pushing.
+
+## Findings ledger
+
+Keep one row per finding, from either reviewer, in the session SQL database or a file in the session workspace, never in the repo: PR, source (`copilot` or `local`), round, severity, `path:line`, one-line summary, verdict (`fixed`, `declined`, `deferred` for out of scope, `nit`) and the reason. Each local round gets the settled rows so it does not re-raise them, and the final report is built from it.
 
 ## The loop
 
@@ -21,28 +42,51 @@ each one silently produced a wrong "nothing to do" in practice.
    last-reviewed commit, the full review body, open threads, mergeability, CI
    counts and any failing check URLs.
 3. **Read all three places a finding hides** (pitfall 2).
-4. **Verify before fixing** (pitfall 4). Reviewer bots are often right and
-   sometimes wrong; both need evidence.
-5. **Fix at the right PR in the stack** (pitfall 6), run the full test suite and
-   the linter, compare against a known warning baseline.
+4. **Check scope, then verify** (pitfall 4). Out-of-scope findings get a reply, not a fix. Reviewer bots are often right and sometimes wrong; both need evidence.
+5. **Fix at the right PR in the stack** (pitfall 6), run the full test suite and the linter, compare against a known warning baseline. Log every finding in the ledger.
 6. **Reply and resolve** each thread with
    [reply-and-resolve.sh](./scripts/reply-and-resolve.sh) (pitfall 7).
-7. **Re-request review**, re-snapshot baselines, go to 2.
+7. **Push, then re-request only if nothing is in flight** (pitfall 10). Run the drift check and snapshot baselines before the push. Copilot usually starts a review by itself within a couple of minutes of a push, so run the watcher with `MINUTES=3` first, and request (command below) only if it reports `REVIEW_NOT_PENDING`, the review is still stale and no thread is unresolved. Go to 2.
+8. **Copilot clean** (see stop condition): with local review on, run a [local round](#local-review-round); otherwise stop.
 
 ```bash
 gh api -X POST "repos/$REPO/pulls/$PR/requested_reviewers" \
   -f "reviewers[]=copilot-pull-request-reviewer[bot]"
 ```
 
+## Local review round
+
+Start one only when Copilot is clean on the current head: its latest review covers head, the body has no findings, no thread is unresolved, `REVIEW_NOT_PENDING`, and CI has no real failures. Copilot findings always go first.
+
+1. **Sync the checkout to the PR head**: clean worktree, `git rev-parse HEAD` equal to the PR's `headRefOid`. The reviewer reads local files, so a stale checkout reviews the wrong code.
+2. **Fill the prompt** from [local-review-prompt.md](./local-review-prompt.md): the goal, repo path, `BASE_SHA` (`git merge-base origin/<base> HEAD`), `HEAD_SHA`, the head the previous local round saw, and the ledger's settled rows.
+3. **Spawn the reviewer** with the task tool:
+   - `agent_type: "code-review"`. If it is unavailable, use `general-purpose`. Either way the prompt's read-only line stays, since the agent may still have edit tools.
+   - `model`: the most capable Claude in the tool's model list, `claude-opus-5.5` as of Oct 2026. Take the newest Opus if the list has moved on, and tell the user if you had to fall back.
+   - `context_tier: "long_context"` (1M) and `reasoning_effort: "xhigh"`.
+   - `mode: "sync"`. For a stack, one reviewer per PR against its own base, in parallel.
+4. **Triage every finding yourself.** The reviewer's severity is input, not a verdict.
+   - **blocking**: wrong or unsafe to merge. Correctness, security, data loss, broken build or tests, a regression, or the PR misses its own goal.
+   - **should-fix**: a real defect with a concrete way to fail, a behaviour change with no test, docs the change made wrong.
+   - **nit**: everything else. Log it, do not fix it.
+
+   Then apply scope and verify (pitfall 4) exactly as for Copilot. A re-raise of a settled row without new evidence is not fresh.
+5. **Nothing fresh, in scope, verified and at least should-fix?** The local loop is done; go to the stop condition.
+6. **Otherwise fix**, run the suite and linter, and make one new commit for the round whose message says what changed and why, not "address review". Local findings have no threads, so post nothing on the PR about them.
+7. **Back to Copilot** at loop step 7, which runs the drift check and pushes. When Copilot is clean again, run the next local round.
+
 ## Stop condition
 
-A PR is done when its latest review covers the current head, reports no
+A PR is Copilot-clean when its latest review covers the current head, reports no
 findings, and has zero unresolved threads. For the tip of a stack, prefer two
 consecutive clean rounds, since a fix on a lower PR can reopen the tip. Stop
 re-requesting once clean rather than burning cycles.
 
-Tell the user what was found and fixed. Do not post change-summary comments on
-the PR itself.
+- **Local review off**: stop when Copilot-clean.
+- **Local review on**: stop when Copilot-clean and the latest local round produced nothing fresh that is in scope, verified, and blocking or should-fix. Nits never keep the loop going. The rest is a judgement call: a round of only re-raises, fixes that undo earlier fixes, or should-fix items you would not hold a merge for all mean stop.
+- **Soft cap**: after four local rounds, stop and hand back to the user with the trend rather than start a fifth. Should-fix findings that late usually mean the loop is churning on its own fixes or the PR is doing too much.
+
+Then tell the user, per PR: what each reviewer found and what was fixed, what was declined and why, out-of-scope follow-ups worth their own PR, how many nits were skipped, and why it stopped. Do not post change-summary comments on the PR itself.
 
 ## Pitfalls
 
@@ -171,9 +215,14 @@ on the first poll and never actually waits. The scripts here use indexed arrays
 for that reason; keep them bash-3.2 clean and run a short two-poll cycle against
 unchanged PRs after editing to confirm the wait still happens.
 
+### 10. A pending Copilot review is invisible to REST
+
+While Copilot is reviewing, REST `pulls/N/requested_reviewers` and `gh pr view --json reviewRequests` both leave it out, so "nobody is requested" looks true and a re-request starts a duplicate run. Only GraphQL `reviewRequests` shows it, as a `Bot` node whose login has no `[bot]` suffix; the issue timeline also has the `review_requested` event. The watcher reads the GraphQL one and prints `REVIEW_PENDING`, `REVIEW_NOT_PENDING`, or `REVIEW_REQUEST_UNKNOWN` when the query fails. Treat unknown as pending until you have checked by hand.
+
 ## Scripts
 
 - [watch-reviews.sh](./scripts/watch-reviews.sh) — poll for new review activity
-  across any number of PRs, then report findings, CI and mergeability.
+  across any number of PRs, then report findings, pending review, CI and mergeability.
 - [reply-and-resolve.sh](./scripts/reply-and-resolve.sh) — post a reply from a
   file to a review thread and resolve it.
+- [local-review-prompt.md](./local-review-prompt.md): the prompt for the local review subagent.

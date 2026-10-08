@@ -8,7 +8,8 @@
 #   INTERVAL   seconds between polls     (default 60)
 #
 # Exits as soon as any PR gains a review or an unresolved thread, so the caller
-# can act. Prints the report either way.
+# can act. Prints the report either way, including whether a review is still
+# pending, so the caller knows whether re-requesting would duplicate one.
 set -uo pipefail
 
 export GH_PAGER=cat NO_COLOR=1
@@ -19,6 +20,8 @@ PRS=("$@")
 [ ${#PRS[@]} -gt 0 ] || { echo "usage: watch-reviews.sh <owner/repo> <pr> [pr...]" >&2; exit 2; }
 
 REVIEWER=${REVIEWER:-'copilot-pull-request-reviewer[bot]'}
+# GraphQL names the same bot without the [bot] suffix that REST uses.
+REVIEWER_GQL=${REVIEWER%'[bot]'}
 MINUTES=${MINUTES:-25}
 INTERVAL=${INTERVAL:-60}
 OWNER=${REPO%%/*}
@@ -38,6 +41,19 @@ unresolved_count() {
           reviewThreads(last:100){nodes{isResolved}}}}}" \
     -f owner="$OWNER" -f name="$NAME" -F pr="$1" \
     --jq '[.data.repository.pullRequest.reviewThreads.nodes[]|select(.isResolved==false)]|length' 2>/dev/null
+}
+
+# A requested review that has not landed yet. Only GraphQL shows a bot here:
+# REST requested_reviewers and `gh pr view --json reviewRequests` omit it.
+pending_count() {
+  gh api graphql -f query="
+    query(\$owner:String!,\$name:String!,\$pr:Int!){
+      repository(owner:\$owner,name:\$name){
+        pullRequest(number:\$pr){
+          reviewRequests(first:50){nodes{requestedReviewer{... on Bot{login} ... on User{login}}}}}}}" \
+    -f owner="$OWNER" -f name="$NAME" -F pr="$1" \
+    --jq "[.data.repository.pullRequest.reviewRequests.nodes[].requestedReviewer.login
+           |select(. == \"$REVIEWER\" or . == \"$REVIEWER_GQL\")]|length" 2>/dev/null
 }
 
 # Indexed arrays, parallel to PRS: macOS ships bash 3.2, which has no
@@ -95,6 +111,12 @@ for pr in "${PRS[@]}"; do
   else
     echo "REVIEW_IS_STALE (its findings may already be fixed; check the threads)"
   fi
+  pending=$(pending_count "$pr")
+  case "$pending" in
+    '' | *[!0-9]*) echo "REVIEW_REQUEST_UNKNOWN (query failed; check by hand before re-requesting)" ;;
+    0) echo "REVIEW_NOT_PENDING" ;;
+    *) echo "REVIEW_PENDING (requested, not landed yet; do not re-request)" ;;
+  esac
 
   # The body carries "Previously missed" findings that create no thread.
   echo "--- review body ---"
