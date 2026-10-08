@@ -22,13 +22,13 @@ Local review is **on** unless the user turns it off: `--no-local-review` in the 
 
 Applies to every finding, from either reviewer. A PR that grows a second purpose during review is harder to review, riskier to merge, and no longer what was asked for.
 
-Before the first cycle, record the PR's goal (title, description, linked issue), its head SHA as `START_HEAD`, and its file list (`gh pr diff N -R REPO --name-only`).
+Before the first cycle, record the PR's goal (title, description, linked issue), its file list (`gh pr diff N -R REPO --name-only`) and its size (`git diff --shortstat origin/<base>...HEAD`).
 
 A finding is **in scope** when it is about the changed lines or a direct consequence of them: callers, tests, docs and scripts the change affects. Pre-existing problems in code the PR does not touch are out of scope unless the PR makes them reachable or worse. So are new features, refactors and "while you're here" cleanups, however good.
 
 - In scope and verified: fix it.
 - Out of scope: do not fix it. On a Copilot thread, reply that it is pre-existing or outside this PR and resolve. Either way, keep it as a follow-up for the final report.
-- Before every push, read `git diff --stat $START_HEAD..HEAD`. Each file outside the original list needs a reason, namely that it consumes what changed. If review fixes start to rival the original change in size, or add behaviour the description does not mention, stop and ask the user instead of pushing.
+- Before every push, fetch the base and read `git diff --stat origin/<base>...HEAD`. Three dots, so what a rebase or a merge brought in from the base does not count as drift; in a stack, push the lower PR first. Each file outside the original list needs a reason, namely that it consumes what changed. If review fixes start to rival the original change in size, or add behaviour the description does not mention, stop and ask the user instead of pushing.
 
 ## Findings ledger
 
@@ -46,7 +46,7 @@ Keep one row per finding, from either reviewer, in the session SQL database or a
 5. **Fix at the right PR in the stack** (pitfall 6), run the full test suite and the linter, compare against a known warning baseline. Log every finding in the ledger.
 6. **Reply and resolve** each thread with
    [reply-and-resolve.sh](./scripts/reply-and-resolve.sh) (pitfall 7).
-7. **Push, then wait for Copilot without double-requesting** (pitfall 10). Run the drift check before the push. Copilot usually starts a review by itself within a couple of minutes of a push, so run the watcher with `MINUTES=3` and branch on its report:
+7. **Push, then wait for Copilot without double-requesting** (pitfall 10). If every finding was declined, there is nothing to push and nothing new for Copilot to review at this head; go to 8. Otherwise run the drift check before the push. Copilot usually starts a review by itself within a couple of minutes of a push, so run the watcher with `MINUTES=3` and branch on its report:
    - `NEW_ACTIVITY`: the review already landed. Go to 3 with this report; going to 2 would set a baseline that already includes it and wait out the full timeout.
    - `REVIEW_PENDING`: go to 2.
    - `REVIEW_NOT_PENDING`, review still stale, no thread unresolved: request it (command below), go to 2.
@@ -60,7 +60,7 @@ gh api -X POST "repos/$REPO/pulls/$PR/requested_reviewers" \
 
 ## Local review round
 
-Start one only when Copilot is clean on the current head: its latest review covers head, the body has no findings, no thread is unresolved, `REVIEW_NOT_PENDING`, and CI has no real failures. Copilot findings always go first.
+Start one only when Copilot is clean on the current head (see stop condition), `REVIEW_NOT_PENDING`, and CI has no real failures. Copilot findings always go first.
 
 1. **Point the reviewer at the PR head**: clean worktree, `git rev-parse HEAD` equal to the PR's `headRefOid`. The reviewer reads local files, so a stale checkout reviews the wrong code. For a stack, one tree cannot sit at every head, so give each PR its own `git worktree add --detach <tmp> <headRefOid>`, pass that path as the repo path, and `git worktree remove` it after the round.
 2. **Fill the prompt** from [local-review-prompt.md](./local-review-prompt.md): the goal, repo path, `BASE_SHA` (`git merge-base origin/<base> HEAD`), `HEAD_SHA`, the head the previous local round saw, and the ledger's settled rows.
@@ -81,8 +81,7 @@ Start one only when Copilot is clean on the current head: its latest review cove
 
 ## Stop condition
 
-A PR is Copilot-clean when its latest review covers the current head, reports no
-findings, and has zero unresolved threads. For the tip of a stack, prefer two
+A PR is Copilot-clean when its latest review covers the current head, has zero unresolved threads, and every finding in its body is already settled in the ledger: none at all, or all declined with a reply. For the tip of a stack, prefer two
 consecutive clean rounds, since a fix on a lower PR can reopen the tip. Stop
 re-requesting once clean rather than burning cycles.
 
